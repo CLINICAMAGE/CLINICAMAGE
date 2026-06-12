@@ -2344,16 +2344,24 @@ function aplicarDescontoOrc(){
   const pct=Math.min(50,Math.max(0,parseFloat($('orcDescInput')?.value)||0));
   if(pct===0)return alert('Defina um percentual de desconto antes de aplicar.');
   if(!confirm(`Aplicar desconto de ${pct}% no orçamento? Isso altera os valores definitivamente.`))return;
-  // Aplica em todos os itens de ORC_ITENS
-  if(window.ORC_ITENS&&ORC_ITENS.length){
-    ORC_ITENS.forEach(it=>{it.val=parseFloat((it.val*(1-pct/100)).toFixed(2));});
+  const fator=1-pct/100;
+  if(ORC_MODE==='detalhe'){
+    // Modo detalhe: aplica em cada item
+    ORC_ITENS.forEach(it=>{it.val=parseFloat((it.val*fator).toFixed(2));});
+    renderOrcItens();updateTotalOrc();
+  } else {
+    // Modo simples: aplica no campo oTotal diretamente
+    const inp=$('oTotal');
+    if(inp){
+      const novoVal=parseFloat((parseFloat(inp.value||0)*fator).toFixed(2));
+      inp.value=novoVal;
+      calcParc();
+    }
   }
-  // Recalcula o orçamento
-  renderOrcItens();updateTotalOrc();
   // Zera o slider/input
   if($('orcDescSlider'))$('orcDescSlider').value=0;
   if($('orcDescInput'))$('orcDescInput').value=0;
-  if($('orcDescResult'))$('orcDescResult').innerHTML=`<span style="color:var(--success)">✅ Desconto de ${pct}% aplicado aos itens.</span>`;
+  if($('orcDescResult'))$('orcDescResult').innerHTML=`<span style="color:var(--success)">✅ Desconto de ${pct}% aplicado.</span>`;
 }
 
 // ══ E9: CONFIRMAÇÃO EM LOTE ══
