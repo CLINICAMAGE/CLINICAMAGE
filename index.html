@@ -2349,8 +2349,7 @@ function aplicarDescontoOrc(){
     ORC_ITENS.forEach(it=>{it.val=parseFloat((it.val*(1-pct/100)).toFixed(2));});
   }
   // Recalcula o orçamento
-  if(typeof calcOrc==='function')calcOrc();
-  else if(typeof renderOrcCalc==='function')renderOrcCalc();
+  renderOrcItens();updateTotalOrc();
   // Zera o slider/input
   if($('orcDescSlider'))$('orcDescSlider').value=0;
   if($('orcDescInput'))$('orcDescInput').value=0;
