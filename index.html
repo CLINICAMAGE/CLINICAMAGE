@@ -2345,20 +2345,46 @@ function aplicarDescontoOrc(){
   if(pct===0)return alert('Defina um percentual de desconto antes de aplicar.');
   if(!confirm(`Aplicar desconto de ${pct}% no orçamento? Isso altera os valores definitivamente.`))return;
   const fator=1-pct/100;
+  let novoTotal=0;
   if(ORC_MODE==='detalhe'){
-    // Modo detalhe: aplica em cada item
     ORC_ITENS.forEach(it=>{it.val=parseFloat((it.val*fator).toFixed(2));});
+    novoTotal=ORC_ITENS.reduce((s,it)=>s+(it.qtd*it.val),0);
     renderOrcItens();updateTotalOrc();
   } else {
-    // Modo simples: aplica no campo oTotal diretamente
     const inp=$('oTotal');
     if(inp){
-      const novoVal=parseFloat((parseFloat(inp.value||0)*fator).toFixed(2));
-      inp.value=novoVal;
+      novoTotal=parseFloat((parseFloat(inp.value||0)*fator).toFixed(2));
+      inp.value=novoTotal;
       calcParc();
     }
   }
-  // Zera o slider/input
+  // Persiste desconto no objeto do orçamento (se editando um já salvo)
+  const editId=$('orcEditId')?.value;
+  if(editId&&CPAC?.orcamentos){
+    const orc=CPAC.orcamentos.find(o=>o.id===editId);
+    if(orc&&novoTotal>0){
+      orc.total=novoTotal;
+      orc.itens=ORC_MODE==='detalhe'?[...ORC_ITENS]:orc.itens;
+      const taxa=orc.taxa||0;
+      if(taxa){
+        const taxaValor=parseFloat((novoTotal*taxa/100).toFixed(2));
+        orc.taxaValor=taxaValor;
+        orc.totalCobrado=orc.taxaOpt==='repassar'?novoTotal+taxaValor:novoTotal;
+        orc.liquidoClinica=orc.taxaOpt==='assumir'?novoTotal-taxaValor:novoTotal;
+      } else {
+        orc.totalCobrado=novoTotal;
+        orc.liquidoClinica=novoTotal;
+      }
+      saveCPAC();
+      // Atualiza valor do lançamento vinculado (se já foi aceito)
+      const lancs=getLancs();
+      const lanc=lancs.find(l=>l.orcId===editId&&l.tipo==='receita');
+      if(lanc){
+        lanc.valor=orc.taxaOpt==='assumir'?orc.liquidoClinica:orc.total;
+        saveLancs(lancs);
+      }
+    }
+  }
   if($('orcDescSlider'))$('orcDescSlider').value=0;
   if($('orcDescInput'))$('orcDescInput').value=0;
   if($('orcDescResult'))$('orcDescResult').innerHTML=`<span style="color:var(--success)">✅ Desconto de ${pct}% aplicado.</span>`;
@@ -6571,6 +6597,8 @@ function salvarLanc(){
   if(l.tipo==='receita'&&l.status==='pago'&&l.pgto?.includes('Cartão')){
     aplicarTaxaCartao(l.id);
   }
+  // Sync status back to linked orçamento when editing
+  if(editId&&l.orcId&&l.tipo==='receita')syncLancToOrc(l);
   closeM('mLanc');renderFin();renderDash();
   ['lDesc','lVal'].forEach(id=>{const el=$(id);if(el)el.value=''});
   const eid=$('lEditId');if(eid)eid.value='';
@@ -6594,7 +6622,39 @@ function editLanc(id){
   editInp.value=id;
   openM('mLanc');
 }
-function marcarPago(id){const a=getLancs();const l=a.find(x=>x.id===id);if(l)l.status='pago';saveLancs(a);renderFin();renderDash()}
+function marcarPago(id){
+  const a=getLancs();
+  const l=a.find(x=>x.id===id);if(!l)return;
+  // Se lançamento vinculado a orçamento → abre modal de pagamento parcial do orçamento
+  if(l.orcId){
+    const pacs=getPacs();
+    const pac=pacs.find(p=>p.id===l.pacId);
+    if(pac){CPAC=pac;registrarPgtoOrc(l.orcId);return;}
+  }
+  // Sem orçamento vinculado → marcar pago direto
+  l.status='pago';saveLancs(a);renderFin();renderDash();
+}
+// Sincroniza status de lançamento de volta ao orçamento do paciente
+function syncLancToOrc(lanc){
+  if(!lanc.orcId||!lanc.pacId)return;
+  const pacs=getPacs();
+  const pac=pacs.find(p=>p.id===lanc.pacId);
+  if(!pac||!pac.orcamentos)return;
+  const orc=pac.orcamentos.find(o=>o.id===lanc.orcId);
+  if(!orc)return;
+  const totalCobrado=orc.totalCobrado||orc.total||0;
+  if(lanc.status==='pago'){
+    orc.entrada=totalCobrado;
+    orc.status='pago';
+  } else if(orc.status==='pago'){
+    orc.status='aceite';
+    orc.entrada=0;
+  }
+  const allPacs=getPacs();
+  const idx=allPacs.findIndex(p=>p.id===pac.id);
+  if(idx>=0){allPacs[idx]=pac;ss('pacientes',allPacs);}
+  if(CPAC&&CPAC.id===pac.id)CPAC=pac;
+}
 
 let CFIN='resumo';
 function finTab(t){
