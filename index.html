@@ -4511,6 +4511,25 @@ function priceField(id,label,val,unit=''){
     </div>
   </div>`;
 }
+function _syncPrecifToRecorrentes({aluguel,salarios,materiais_fixos,outros_fixos}){
+  const mapa=[
+    {chave:'__precif_aluguel',desc:'Aluguel',valor:aluguel},
+    {chave:'__precif_salarios',desc:'Salários e encargos',valor:salarios},
+    {chave:'__precif_materiais',desc:'Materiais e insumos fixos',valor:materiais_fixos},
+    {chave:'__precif_outros',desc:'Outros custos fixos',valor:outros_fixos},
+  ];
+  let rec=ls('recorrentes',[]);
+  mapa.forEach(({chave,desc,valor})=>{
+    const idx=rec.findIndex(r=>r.chave===chave);
+    if(valor>0){
+      const entry={id:idx>=0?rec[idx].id:uid(),chave,desc,tipo:'despesa',valor,categoria:'Custo Fixo',freq:'mensal',dia:1,ativo:true,obs:'Sincronizado da Precificação'};
+      if(idx>=0)rec[idx]=entry;else rec.push(entry);
+    } else if(idx>=0){
+      rec.splice(idx,1); // remove se zerado
+    }
+  });
+  ss('recorrentes',rec);
+}
 function calcPrecif(){
   const alug=parseFloat($('pfAlug').value)||0;
   // Auto-fill salários from equipe (custo real = salário + encargos) if field is empty
@@ -4522,6 +4541,8 @@ function calcPrecif(){
   const imp=parseFloat($('pfImp').value)||0;const hrs=parseFloat($('pfHrs').value)||160;
   const marg=parseFloat($('pfMarg').value)||30;
   ss('finConfig',{aluguel:alug,salarios:sal,materiais_fixos:mat,outros_fixos:out,impostos:imp,horas_mes:hrs,margem:marg});
+  // Sincroniza com Recorrentes automaticamente
+  _syncPrecifToRecorrentes({aluguel:alug,salarios:sal,materiais_fixos:mat,outros_fixos:out});
   const totalFixo=alug+sal+mat+out;
   const custoHora=hrs>0?totalFixo/hrs:0;
   const procs=getProcs();
