@@ -7229,8 +7229,15 @@ function sigBlock(id){return`<div style="margin-top:20px;padding-top:16px;border
     <button class="btn btn-g btn-sm" onclick="salvarTermo('${id}')">💾 Salvar no Prontuário</button>
     <button class="btn btn-p btn-sm" onclick="imprimirDocumento(this)">🖨️ Imprimir</button>
   </div>
-  <div style="margin-top:20px;padding-top:10px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);text-align:center">
-    ${(()=>{const cl=getClinica();return cl.rodape||(cl.nome||lss('clinicName')||'Clínica')+(cl.cro?' — '+cl.cro:'')+(cl.tel?' — Tel: '+cl.tel:'')+(cl.email?' — '+cl.email:'');})()}
+  <div style="margin-top:20px;padding-top:10px;border-top:1px solid var(--border);text-align:center">
+    ${(()=>{
+      const cl=getClinica();
+      if(cl.rodape)return`<div style="font-size:10px;color:var(--muted)">${cl.rodape}</div>`;
+      const end=cl.end||'';const tel=cl.tel||'';const email=cl.email||'';const cnpj=cl.cnpj||'';
+      return`${end?`<div style="font-size:10px;color:var(--muted)">${end}</div>`:''}
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${tel?`Tel/WhatsApp: ${tel}`:''}${email?` &nbsp;|&nbsp; E-mail: ${email}`:''}${cnpj?` &nbsp;|&nbsp; CNPJ: ${cnpj}`:''}
+        </div>`;
+    })()}
   </div>
 </div>`}
 function tLGPD(p){
@@ -7379,21 +7386,23 @@ function tHeader(clinica,titulo,subtitulo='Termo de Consentimento Livre e Esclar
   const cl=getClinica();
   const nome=cl.nome||clinica||lss('clinicName')||'Clínica';
   const cro=cl.cro||'';const tel=cl.tel||'';const end=cl.end||'';const cidade=cl.cidade||'';
-  const logoUrl=getLogoUrl('doc_header');
-  return`<div style="margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid var(--teal)">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
-      <div>
-        ${logoUrl?`<img src="${logoUrl}" style="height:60px;object-fit:contain;margin-bottom:8px;display:block" alt="Logo">`:''}
-        <div style="font-family:'Playfair Display',serif;font-size:19px;color:var(--teal-d);font-weight:700">${nome}</div>
-        ${cro?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${cro}</div>`:''}
-        ${end?`<div style="font-size:11px;color:var(--muted)">${end}${cidade?' — '+cidade:''}</div>`:''}
-        ${tel?`<div style="font-size:11px;color:var(--muted)">Tel: ${tel}${cl.email?' | '+cl.email:''}</div>`:''}
+  const logoUrl=getLogoUrl('doc_header')||getLogoUrl('sidebar');
+  return`<div style="margin-bottom:20px;padding-bottom:0;border-bottom:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:14px">
+        ${logoUrl?`<img src="${logoUrl}" style="height:64px;width:64px;object-fit:contain;border-radius:8px;flex-shrink:0" alt="Logo">`:`<div style="width:64px;height:64px;border-radius:8px;background:var(--teal-p);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">🦷</div>`}
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--teal-d);font-weight:700;line-height:1.2">${nome}</div>
+          ${cro?`<div style="font-size:11px;color:var(--muted);margin-top:3px">${cro}</div>`:''}
+          ${end?`<div style="font-size:11px;color:var(--muted)">${end}${cidade?' — '+cidade:''}</div>`:''}
+          ${tel?`<div style="font-size:11px;color:var(--muted)">Tel: ${tel}${cl.email?' &nbsp;|&nbsp; '+cl.email:''}</div>`:''}
+        </div>
       </div>
-      ${logoUrl?`<img src="${logoUrl}" style="height:70px;object-fit:contain;opacity:.15" alt="">`:''}
+      ${logoUrl?`<img src="${logoUrl}" style="height:72px;width:72px;object-fit:contain;opacity:.10;flex-shrink:0" alt="">`:''}
     </div>
-    <div style="text-align:center;margin-top:12px">
-      ${subtitulo?`<div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">${subtitulo}</div>`:''}
-      <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--text);font-weight:700;margin-top:4px">${titulo}</div>
+    <div style="text-align:center;padding:14px 0 10px;border-bottom:3px solid var(--teal)">
+      ${subtitulo?`<div style="font-size:10px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:4px">${subtitulo}</div>`:''}
+      <div style="font-family:'Playfair Display',serif;font-size:21px;color:var(--text);font-weight:700;letter-spacing:.5px">${titulo}</div>
     </div>
   </div>`
 }
@@ -7667,7 +7676,7 @@ function tSolicitacao(p){
   const cl=getClinica();
   const profNome=cl.profNome||cl.nome||'Dra. Geisa de Macêdo Marques Almeida';
   const cro=cl.cro||'CRO-PE 18780';
-  const cidade=cl.cidade||'Petrolina-PE';
+  const cidade=(cl.cidade||'Petrolina-PE').replace(/[\s,]*\d{5}-?\d{3}.*/,'').trim();
   const hoje=new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});
   return`<div class="card term-body with-watermark">
   ${tHeader(lss('clinicName')||'Clínica','SOLICITAÇÃO DE EXAME','Documento Médico-Odontológico')}
@@ -7700,8 +7709,15 @@ function tSolicitacao(p){
     <button class="btn btn-g btn-sm" onclick="salvarTermo('solicitacao')">💾 Salvar no Prontuário</button>
     <button class="btn btn-p btn-sm" onclick="imprimirDocumento(this)">🖨️ Imprimir</button>
   </div>
-  <div style="margin-top:20px;padding-top:10px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);text-align:center">
-    ${(()=>{const cl=getClinica();return cl.rodape||(cl.nome||lss('clinicName')||'Clínica')+(cl.cro?' — '+cl.cro:'')+(cl.tel?' — Tel: '+cl.tel:'')+(cl.email?' — '+cl.email:'');})()}
+  <div style="margin-top:20px;padding-top:10px;border-top:1px solid var(--border);text-align:center">
+    ${(()=>{
+      const cl=getClinica();
+      if(cl.rodape)return`<div style="font-size:10px;color:var(--muted)">${cl.rodape}</div>`;
+      const end=cl.end||'';const tel=cl.tel||'';const email=cl.email||'';const cnpj=cl.cnpj||'';
+      return`${end?`<div style="font-size:10px;color:var(--muted)">${end}</div>`:''}
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${tel?`Tel/WhatsApp: ${tel}`:''}${email?` &nbsp;|&nbsp; E-mail: ${email}`:''}${cnpj?` &nbsp;|&nbsp; CNPJ: ${cnpj}`:''}
+        </div>`;
+    })()}
   </div>
 </div>`}
 
