@@ -772,6 +772,8 @@ tr:hover td{background:var(--teal-p)}
         <div class="stab" onclick="termoTab('atestado')">📄 Atestado</div>
         <div class="stab" onclick="termoTab('receituario')">💊 Receituário</div>
         <div class="stab" onclick="termoTab('comparecimento')">✅ Comparecimento</div>
+        <div class="stab" onclick="termoTab('hialuro')">🧪 TCLE Hialuronidase</div>
+        <div class="stab" onclick="termoTab('solicitacao')">🔬 Solicitação de Exame</div>
       </div>
       <div id="termoArea"></div>
     </div>
@@ -7190,7 +7192,7 @@ function renderTermoPacSel(){
 }
 function termoTab(t){
   CTERMO=t;
-  const tabs=['ficha','preench','toxina','bioest','imagem'];
+  const tabs=['ficha','preench','toxina','bioest','imagem','lgpd','atestado','receituario','comparecimento','hialuro','solicitacao'];
   document.querySelectorAll('#page-termos .stab').forEach((el,i)=>el.classList.toggle('on',tabs[i]===t));
   renderTermo();
 }
@@ -7208,6 +7210,8 @@ function renderTermo(){
   else if(CTERMO==='atestado')area.innerHTML=tAtestado(p);
   else if(CTERMO==='receituario')area.innerHTML=tReceituario(p);
   else if(CTERMO==='comparecimento')area.innerHTML=tComparecimento(p);
+  else if(CTERMO==='hialuro')area.innerHTML=tHialuro(p,prof);
+  else if(CTERMO==='solicitacao')area.innerHTML=tSolicitacao(p);
   setTimeout(()=>initSigs(),80);
 }
 function sigBlock(id){return`<div style="margin-top:20px;padding-top:16px;border-top:2px solid var(--border)">
@@ -7352,7 +7356,7 @@ function clearSig(id){const c=$(id);if(c)c.getContext('2d').clearRect(0,0,c.widt
 function salvarTermo(id){
   const p=getPacTermo();if(!p)return alert('Selecione um paciente primeiro.');
   const c=$('sig_'+id);const sig=c?c.toDataURL():'';
-  const tipos={ficha:'Ficha Clínica HF',preench:'TCLE Preenchedor',toxina:'TCLE Toxina Botulínica',bioest:'TCLE Bioestimulador',imagem:'TCLE Uso de Imagem'};
+  const tipos={ficha:'Ficha Clínica HF',preench:'TCLE Preenchedor',toxina:'TCLE Toxina Botulínica',bioest:'TCLE Bioestimulador',imagem:'TCLE Uso de Imagem',hialuro:'TCLE Hialuronidase',solicitacao:'Solicitação de Exame'};
   if(!p.docs)p.docs=[];
   p.docs.push({id:uid(),tipo:tipos[id]||id,nome:'Assinado digitalmente — '+new Date().toLocaleString('pt-BR'),data:today(),sigData:sig,obs:'Assinado via sistema'});
   const a=getPacs();const i=a.findIndex(x=>x.id===p.id);if(i>=0){a[i]=p;savePacs(a)}
@@ -7371,25 +7375,24 @@ function fSN(name,label){return`<div style="display:flex;align-items:flex-start;
   </div>
 </div>`}
 // ══ TERMOS HTML ══
-function tHeader(clinica,titulo){
+function tHeader(clinica,titulo,subtitulo='Termo de Consentimento Livre e Esclarecido'){
   const cl=getClinica();
   const nome=cl.nome||clinica||lss('clinicName')||'Clínica';
   const cro=cl.cro||'';const tel=cl.tel||'';const end=cl.end||'';const cidade=cl.cidade||'';
   const logoUrl=getLogoUrl('doc_header');
-  const rodape=cl.rodape||`${nome}${cro?' — '+cro:''} — Documento confidencial`;
   return`<div style="margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid var(--teal)">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
       <div>
-        ${logoUrl?`<img src="${logoUrl}" style="height:60px;object-fit:contain;margin-bottom:8px;display:block" alt="Logo">`:'' }
+        ${logoUrl?`<img src="${logoUrl}" style="height:60px;object-fit:contain;margin-bottom:8px;display:block" alt="Logo">`:''}
         <div style="font-family:'Playfair Display',serif;font-size:19px;color:var(--teal-d);font-weight:700">${nome}</div>
         ${cro?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${cro}</div>`:''}
         ${end?`<div style="font-size:11px;color:var(--muted)">${end}${cidade?' — '+cidade:''}</div>`:''}
         ${tel?`<div style="font-size:11px;color:var(--muted)">Tel: ${tel}${cl.email?' | '+cl.email:''}</div>`:''}
       </div>
-      ${logoUrl?`<img src="${logoUrl}" style="height:70px;object-fit:contain;opacity:.15" alt="">`:'' }
+      ${logoUrl?`<img src="${logoUrl}" style="height:70px;object-fit:contain;opacity:.15" alt="">`:''}
     </div>
     <div style="text-align:center;margin-top:12px">
-      <div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Termo de Consentimento Livre e Esclarecido</div>
+      ${subtitulo?`<div style="font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">${subtitulo}</div>`:''}
       <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--text);font-weight:700;margin-top:4px">${titulo}</div>
     </div>
   </div>`
@@ -7399,10 +7402,7 @@ function pacRow(p){return`<div style="display:grid;grid-template-columns:1fr 1fr
 </div>`}
 
 function tFicha(p,prof,clinica){return`<div class="card term-body with-watermark">
-  <div style="text-align:center;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid var(--teal)">
-    <div style="font-family:'Playfair Display',serif;font-size:19px;color:var(--teal-d);font-weight:700">${clinica}</div>
-    <div style="font-family:'Playfair Display',serif;font-size:20px;color:var(--text);font-weight:700;margin-top:6px">FICHA CLÍNICA — HARMONIZAÇÃO FACIAL</div>
-  </div>
+  ${tHeader(clinica,'FICHA CLÍNICA — HARMONIZAÇÃO FACIAL','Anamnese e Histórico de Saúde')}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
     ${fi('DATA',today(),'date')}${fi('IDADE',p?calcIdade(p.nasc)+' anos':'')}
     ${fi('NOME COMPLETO',p?.nome||'',true)}
@@ -7602,6 +7602,107 @@ function tImagem(p,prof,clinica){return`<div class="card term-body with-watermar
   <p>Em cumprimento à Lei Geral de Proteção de Dados - LGPD (Lei 13.709/2018), as imagens coletadas serão utilizadas exclusivamente para as finalidades acima autorizadas, tratadas com segurança e não compartilhadas com terceiros sem novo consentimento expresso do(a) paciente.</p>
   <p style="margin-top:14px;font-style:italic;font-size:12px">Declaro ter lido e compreendido integralmente este Termo de Autorização de Uso de Imagem, e que consinto livremente com as condições nele estabelecidas, tendo tido a oportunidade de esclarecer todas as minhas dúvidas antes da assinatura.</p>
   ${sigBlock('imagem')}
+</div>`}
+
+function tHialuro(p,prof){
+  const cl=getClinica();
+  const cro=cl.cro||'CRO-PE 18780';
+  const profNome=prof||cl.nome||'Dra. Geisa de Macêdo Marques Almeida';
+  const cidade=cl.cidade||'Petrolina-PE';
+  return`<div class="card term-body with-watermark">
+  ${tHeader(lss('clinicName')||'Clínica','HIALURONIDASE')}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px;background:var(--bg);border-radius:8px;margin-bottom:16px">
+    ${fi('Paciente',p?.nome||'')}${fi('Data de Nascimento',p?.nasc||'')}
+    ${fi('RG','')}${fi('CPF',p?.cpf||'')}
+    ${fi('Endereço',p?.endereco||p?.end||'',true)}
+    ${fi('Telefone/Celular',p?.tel||'')}${fi('E-mail',p?.email||'')}
+    ${fi('Área a ser tratada','')}
+  </div>
+  <p>Pelo presente instrumento, <strong>${p?.nome||'___________________________'}</strong> declaro que recebi, em linguagem clara e acessível, todas as informações sobre o procedimento de aplicação de hialuronidase ao qual voluntariamente me submeterei, incluindo seus benefícios, riscos e possíveis complicações, tendo tido oportunidade de esclarecer minhas dúvidas antes de manifestar meu consentimento.</p>
+  <p>Cirurgiã-Dentista responsável: <strong><input type="text" value="${profNome}" class="term-inline" style="width:280px"></strong> — <input type="text" value="${cro}" class="term-inline" style="width:120px"></p>
+  <h4>1. Natureza do procedimento e obrigação de meio</h4>
+  <p>Estou ciente de que todo procedimento de saúde constitui <strong>obrigação de meio</strong>, e não de resultado: a Cirurgiã-Dentista empregará as técnicas e cuidados indicados, sem garantir um resultado específico, já que a resposta de cada organismo é individual.</p>
+  <h4>2. Sobre a hialuronidase</h4>
+  <p>A hialuronidase é uma enzima utilizada para dissolver, de forma controlada, o ácido hialurônico previamente injetado na região tratada, permitindo a reabsorção do excesso pelo organismo e a correção de resultados indesejados ou complicações relacionadas ao preenchimento. O procedimento é geralmente precedido por anestesia local e pode requerer mais de uma sessão, conforme avaliação clínica.</p>
+  <h4>3. Contraindicações</h4>
+  <p>O procedimento pode não ser indicado ou exigir cautela adicional nas seguintes situações:</p>
+  <ul>
+    <li>Alergia conhecida à hialuronidase ou a qualquer componente da fórmula;</li>
+    <li>Infecção ativa no local de aplicação;</li>
+    <li>Gravidez e lactação, exceto quando o benefício justifique o risco;</li>
+    <li>Distúrbios de coagulação ou uso de medicamentos anticoagulantes;</li>
+    <li>Doenças autoimunes em atividade;</li>
+    <li>Histórico de cicatrização hipertrófica ou queloide.</li>
+  </ul>
+  <p>Comprometo-me a informar à profissional qualquer condição de saúde, alergia, medicamento em uso ou outra circunstância relevante.</p>
+  <h4>4. Riscos e possíveis complicações</h4>
+  <ul>
+    <li>Dor, inchaço e desconforto local;</li>
+    <li>Hematoma ou pequeno sangramento no local da injeção;</li>
+    <li>Reações alérgicas;</li>
+    <li>Infecção;</li>
+    <li>Resultado assimétrico ou abaixo do esperado, podendo requerer ajuste complementar;</li>
+    <li>Em raros casos, formação de cicatriz.</li>
+  </ul>
+  <h4>5. Cuidados antes e depois do procedimento</h4>
+  <p>Fui orientado(a) a evitar, nos dias que antecedem o procedimento: anticoagulantes (salvo orientação médica), bebida alcoólica, cigarro e produtos tópicos na área a ser tratada. Após o procedimento, comprometo-me a seguir as orientações da Cirurgiã-Dentista quanto a repouso relativo, proteção solar, compressas frias se indicado, eventuais medicações prescritas e comparecimento às consultas de retorno.</p>
+  <h4>6. Declarações e autorizações</h4>
+  <div style="display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--bg);border-radius:8px;font-size:13px">
+    ${fSN('hCons','Declaro que fui informado(a) e tive a oportunidade de esclarecer todas as minhas dúvidas.')}
+    ${fSN('hFoto','Autorizo o registro fotográfico para fins de documentação clínica e estudo científico.')}
+    ${fSN('hLGPD','Autorizo a coleta e tratamento dos meus dados pessoais conforme LGPD (Lei 13.709/2018).')}
+    ${fSN('hMed','Comprometo-me a informar todo medicamento, droga ou suplemento usado nas 72h anteriores.')}
+  </div>
+  <div style="display:flex;align-items:center;gap:24px;margin:16px 0;padding:12px;border:2px solid var(--teal);border-radius:8px">
+    <span style="font-weight:700;font-size:14px">Decisão:</span>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;font-weight:600;color:var(--success)"><input type="radio" name="hDecisao"> ✅ CONSINTO</label>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;font-weight:600;color:var(--danger)"><input type="radio" name="hDecisao"> ❌ RECUSO</label>
+    <span style="font-size:13px">o procedimento de aplicação de hialuronidase.</span>
+  </div>
+  <p style="font-size:11px;color:var(--muted)">Este Termo é firmado em 2 (duas) vias de igual teor, ficando uma via com o(a) paciente e outra com a profissional responsável.</p>
+  ${sigBlock('hialuro')}
+</div>`}
+
+function tSolicitacao(p){
+  const cl=getClinica();
+  const profNome=cl.profNome||cl.nome||'Dra. Geisa de Macêdo Marques Almeida';
+  const cro=cl.cro||'CRO-PE 18780';
+  const cidade=cl.cidade||'Petrolina-PE';
+  const hoje=new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric'});
+  return`<div class="card term-body with-watermark">
+  ${tHeader(lss('clinicName')||'Clínica','SOLICITAÇÃO DE EXAME','Documento Médico-Odontológico')}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px;background:var(--bg);border-radius:8px;margin-bottom:20px">
+    ${fi('Paciente',p?.nome||'')}${fi('Data de Nascimento',p?.nasc||'')}
+    ${fi('CPF',p?.cpf||'')}${fi('Telefone',p?.tel||'')}
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:16px"><em>À equipe de Radiologia,</em></p>
+  <p style="margin-bottom:16px">Solicito para o(a) paciente acima indicado(a):</p>
+  <div style="padding:14px;background:var(--teal-p);border-left:4px solid var(--teal);border-radius:0 8px 8px 0;margin-bottom:20px">
+    <textarea class="term-inline" style="width:100%;min-height:60px;font-size:15px;font-weight:700;resize:vertical" placeholder="Ex: Ressonância Magnética (RM) de Face (Tecidos Moles) com e sem contraste">${p?'Ressonância Magnética (RM) de Face (Tecidos Moles) com e sem contraste':''}</textarea>
+  </div>
+  <h4>Indicação clínica:</h4>
+  <textarea class="term-inline" style="width:100%;min-height:160px;font-size:13px;line-height:1.7;resize:vertical" placeholder="Descreva a indicação clínica, histórico relevante e objetivo do exame...">${p?`Paciente com histórico de procedimento estético injetável em região facial. Solicito avaliação por imagem para identificação, caracterização e localização de material, bem como avaliação de tecidos moles adjacentes.`:''}</textarea>
+  <div style="margin-top:24px;padding-top:16px;border-top:2px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">LOCAL E DATA</div>
+        <input type="text" value="${cidade}, ${hoje}" class="term-inline" style="width:280px">
+      </div>
+      <div style="text-align:center">
+        <div style="width:220px;border-top:1px solid var(--text);padding-top:6px;margin-top:40px">
+          <div style="font-size:13px;font-weight:700"><input type="text" value="${profNome}" class="term-inline" style="width:100%;text-align:center"></div>
+          <div style="font-size:11px;color:var(--muted)"><input type="text" value="${cro}" class="term-inline" style="width:100%;text-align:center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end" class="no-print">
+    <button class="btn btn-g btn-sm" onclick="salvarTermo('solicitacao')">💾 Salvar no Prontuário</button>
+    <button class="btn btn-p btn-sm" onclick="imprimirDocumento(this)">🖨️ Imprimir</button>
+  </div>
+  <div style="margin-top:20px;padding-top:10px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);text-align:center">
+    ${(()=>{const cl=getClinica();return cl.rodape||(cl.nome||lss('clinicName')||'Clínica')+(cl.cro?' — '+cl.cro:'')+(cl.tel?' — Tel: '+cl.tel:'')+(cl.email?' — '+cl.email:'');})()}
+  </div>
 </div>`}
 
 // ══ RELATÓRIOS ══
