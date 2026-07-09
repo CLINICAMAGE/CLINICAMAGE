@@ -2087,7 +2087,7 @@ function doLogin(){
   if(!users[email])return showErr('Usuário não encontrado.');
   const stored=users[email].password||users[email].passHash||'';
   if(stored!==btoa(pass)&&stored!==pass)return showErr('Senha incorreta.');
-  sss('session',email);launchApp(users[email],email);
+  sessionStorage.setItem('mage_session',email);launchApp(users[email],email);
 }
 function doRegister(){
   const name=$('rName').value.trim(),email=$('rEmail').value.trim();
@@ -2099,7 +2099,7 @@ function doRegister(){
   if(users[email])return showErr('E-mail já cadastrado.');
   const allPerms=['dashboard','agenda','prontuario','termos','financeiro','crm','relatorios','usuarios'];
   users[email]={name,password:btoa(p1),role,perms:role==='master'?allPerms:['dashboard','agenda','prontuario','termos']};
-  ss('users',users);sss('session',email);launchApp(users[email],email);
+  ss('users',users);sessionStorage.setItem('mage_session',email);launchApp(users[email],email);
 }
 function toggleMobMenu(){const sb=$('sidebar');if(!sb)return;sb.classList.toggle('mob-open');$('mobOverlay').classList.toggle('on');}
 function closeMobMenu(){const sb=$('sidebar');if(!sb)return;sb.classList.remove('mob-open');$('mobOverlay').classList.remove('on');}
@@ -2123,7 +2123,25 @@ function alterarSenha(){
 }
 function doLogout(){
   auditLog('logout','sistema','','Logout: '+(SESS?.email||''));
-  sss('session','');location.reload();
+  sessionStorage.removeItem('mage_session');_stopInact();location.reload();
+}
+
+// ── INATIVIDADE ──
+let _inactTimer=null,_inactWarn=null;
+const _INACT_MS=30*60*1000,_WARN_MS=29*60*1000;
+function _resetInact(){
+  clearTimeout(_inactTimer);clearTimeout(_inactWarn);
+  _inactWarn=setTimeout(()=>{
+    if(SESS)alert('⚠️ Você ficará desconectado em 1 minuto por inatividade.\n\nClique OK para continuar conectado.');
+    _resetInact();
+  },_WARN_MS);
+  _inactTimer=setTimeout(()=>{if(SESS)doLogout();},_INACT_MS);
+}
+function _stopInact(){clearTimeout(_inactTimer);clearTimeout(_inactWarn);}
+function _startInact(){
+  ['mousemove','keydown','mousedown','touchstart','scroll'].forEach(ev=>
+    document.addEventListener(ev,_resetInact,{passive:true}));
+  _resetInact();
 }
 function launchApp(user,email){
   SESS={user,email};
@@ -2141,6 +2159,7 @@ function launchApp(user,email){
   const td=today();
   ['agDt','atDt','oDt','lDt','ldDt'].forEach(id=>{const el=$(id);if(el)el.value=td});
   restoreLogos();applyTheme();applyWatermark();applyLogoToSidebar();renderAll();
+  _startInact();
   auditLog('login','sistema','',`Login: ${email||SESS?.email||''}`);
   // Aviso de tarefas atrasadas ao entrar
   setTimeout(()=>{
@@ -2192,7 +2211,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
     _KEYS.forEach(k=>{try{const v=JSON.parse(localStorage.getItem('c_'+k));if(v!==null)_db['c_'+k]=v;}catch{}});
   }
   if(authErr)authErr.style.display='none';
-  const sess=lss('session');
+  const sess=sessionStorage.getItem('mage_session');
   if(sess){const users=ls('users',{});if(users[sess])launchApp(users[sess],sess);}
 });
 
