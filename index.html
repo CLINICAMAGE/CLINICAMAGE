@@ -288,17 +288,119 @@ tr:hover td{background:var(--teal-p)}
     z-index:0!important;pointer-events:none!important
   }
 }
+/* ══ RESPONSIVO — TABLET (≤900px) ══ */
 @media(max-width:900px){
   :root{--sw:0px}
   .sidebar{width:232px!important;transform:translateX(-232px);transition:transform .3s;z-index:1000;position:fixed;top:0;left:0;height:100vh;overflow-y:auto}
   .sidebar.mob-open{transform:translateX(0)}
-  .main{margin-left:0;padding:16px}
+  .main{margin-left:0;padding:18px 16px 80px}
   .g4,.g5{grid-template-columns:1fr 1fr}
   .g3{grid-template-columns:1fr 1fr}
   #mobMenuBtn{display:flex}
   #mobOverlay{display:block}
   #mobOverlay.on{pointer-events:all;opacity:1}
+  .ph{flex-direction:column;align-items:flex-start;gap:10px}
+  .ph-r{flex-wrap:wrap}
+  .stabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+  .stab{flex-shrink:0}
+  .mb-xl,.mb-w{width:100%}
+  .mf{flex-wrap:wrap}
+  .mf .btn{flex:1;min-width:120px;justify-content:center}
+  .kanban{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .sc-val{font-size:22px}
+  .wg{overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
+
+/* ══ RESPONSIVO — MOBILE (≤600px) ══ */
+@media(max-width:600px){
+  :root{font-size:13px}
+  .main{padding:12px 10px 90px}
+
+  /* Grids → coluna única */
+  .g2,.g3,.g4,.g5{grid-template-columns:1fr}
+
+  /* Header de página */
+  .ph{flex-direction:column;align-items:flex-start;gap:8px}
+  .ph-l h1{font-size:20px}
+  .ph-r{width:100%;justify-content:flex-start;flex-wrap:wrap}
+  .ph-r .btn{flex:1;min-width:130px;justify-content:center}
+
+  /* Cards */
+  .card{padding:14px}
+
+  /* Stat cards */
+  .sc{padding:14px}
+  .sc-val{font-size:20px}
+
+  /* Tabs horizontais com scroll */
+  .stabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:6px;margin-bottom:14px}
+  .stab{flex-shrink:0;font-size:10px;padding:6px 10px}
+
+  /* Tabelas: scroll horizontal forçado */
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:var(--r)}
+  table{min-width:540px}
+  td,th{padding:8px 10px;font-size:11px}
+
+  /* Formulários */
+  .fr{flex-direction:column;gap:8px}
+  .ff{min-width:100%}
+  .ff input,.ff select,.ff textarea{font-size:15px} /* evita zoom no iOS */
+  .fg input,.fg select{font-size:15px}
+
+  /* Modais → folha inferior */
+  .mo{align-items:flex-end;padding:0}
+  .mb{border-radius:18px 18px 0 0;padding:22px 16px 28px;width:100%;max-width:100%;
+      max-height:92vh;overflow-y:auto}
+  .mb-w,.mb-xl{width:100%;border-radius:18px 18px 0 0}
+  .mh h3{font-size:16px}
+  .mf{flex-direction:column;gap:8px;padding-top:14px}
+  .mf .btn{width:100%;justify-content:center}
+
+  /* Agenda — view semanal compacta */
+  .wg{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .wg-hd,.wg-cell,.wg-time{font-size:9px}
+
+  /* Kanban */
+  .kanban{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px}
+  .kb-col{min-width:170px}
+
+  /* Botões gerais */
+  .btn{font-size:11px;padding:8px 12px}
+  .btn-sm{padding:6px 9px;font-size:10px}
+  .btn-xs{padding:4px 7px;font-size:10px}
+
+  /* Auth */
+  .auth-card{padding:28px 20px;border-radius:14px}
+  .auth-h h2{font-size:18px}
+
+  /* Rodapé fixo com botão de menu */
+  #mobMenuBtn{top:auto;bottom:16px;left:50%;transform:translateX(-50%);
+    width:52px;height:52px;border-radius:50%;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+  #mobMenuBtn svg{width:22px;height:22px}
+
+  /* Badges menores */
+  .badge{font-size:9px;padding:2px 7px}
+  .nb{font-size:8px;padding:1px 5px}
+
+  /* Sidebar footer user info */
+  .sb-un{font-size:11px}
+
+  /* Odontograma */
+  .odonto-arc{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding-bottom:4px}
+  .tooth{min-width:24px}
+  .tooth-num{font-size:8px}
+}
+
+/* ══ RESPONSIVO — TELAS MUITO PEQUENAS (≤380px) ══ */
+@media(max-width:380px){
+  .main{padding:10px 8px 90px}
+  .ph-l h1{font-size:18px}
+  .stab{font-size:9px;padding:5px 8px}
+  .sc-val{font-size:18px}
+  table{min-width:480px}
+}
+
 #mobMenuBtn{display:none;position:fixed;top:12px;left:12px;z-index:1100;
   width:40px;height:40px;background:var(--teal);border:none;border-radius:8px;
   align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}
@@ -359,6 +461,10 @@ tr:hover td{background:var(--teal-p)}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Termos / TCLEs
       </div>
       <div class="nav-sec">Gestão</div>
+      <div class="ni" data-p="tarefas" onclick="go('tarefas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="M3 17h6M3 21h6M13 6h8M13 12h8M13 18h8"/><path d="M9 8l-2 2-1-1"/></svg>
+        Tarefas <span class="nb" id="nbTarefas" style="display:none">0</span>
+      </div>
       <div class="ni" data-p="financeiro" onclick="go('financeiro')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Financeiro
       </div>
@@ -458,6 +564,8 @@ tr:hover td{background:var(--teal-p)}
         <div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">Funil de Leads</div><div id="dashCRM"></div></div>
       </div>
       <div id="dashAniversarios" style="margin-top:14px"></div>
+      <div id="dashRetornos" style="margin-top:14px"></div>
+      <div id="dashTarefasHoje" style="margin-top:14px"></div>
     </div>
 
     <!-- AGENDA -->
@@ -476,6 +584,7 @@ tr:hover td{background:var(--teal-p)}
         <div class="stab on" onclick="agView('semana')">📅 Semana</div>
         <div class="stab" onclick="agView('dia')">📋 Dia</div>
         <div class="stab" onclick="agView('lista')">📃 Lista</div>
+        <div class="stab" onclick="agView('retornos')">🔔 Retornos</div>
       </div>
       <div id="agArea"></div>
     </div>
@@ -828,6 +937,25 @@ tr:hover td{background:var(--teal-p)}
         </div>
         <div class="kanban" id="kanban"></div>
       </div>
+    </div>
+
+    <!-- TAREFAS -->
+    <div class="page" id="page-tarefas">
+      <div class="ph no-print">
+        <div class="ph-l"><h1>Tarefas</h1><p>Controle de produtividade e obrigações do dia a dia</p></div>
+        <div class="ph-r">
+          <select id="tfFiltResp" onchange="renderTarefas()" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+            <option value="">Todos os responsáveis</option>
+          </select>
+          <select id="tfFiltStatus" onchange="renderTarefas()" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+            <option value="">Todas</option>
+            <option value="pendente">Pendentes</option>
+            <option value="concluida">Concluídas</option>
+          </select>
+          <span id="btnNovaTarefaWrap"></span>
+        </div>
+      </div>
+      <div id="tarefasArea"></div>
     </div>
 
     <!-- RELATORIOS -->
@@ -1791,7 +1919,17 @@ tr:hover td{background:var(--teal-p)}
     <div class="ff" style="flex:0 0 150px"><label>Custo do Procedimento (R$)</label><input type="number" id="procCusto" step="0.01" min="0" placeholder="0,00"></div>
     <div class="ff"><label>Duração (min)</label><input type="number" id="procDur" placeholder="60" min="5"></div>
   </div>
-  <div class="fr"><div class="ff"><label>Observações / Descrição</label><textarea id="procObs" style="min-height:50px"></textarea></div></div>
+  <div class="fr">
+    <div class="ff"><label>Observações / Descrição</label><textarea id="procObs" style="min-height:50px"></textarea></div>
+    <div class="ff" style="flex:0 0 220px"><label>Recorrência / Retorno automático</label>
+      <select id="procRetorno">
+        <option value="">Sem retorno programado</option>
+        <option value="toxina">Toxina Botulínica (+3 meses)</option>
+        <option value="ah">Preenchimento AH (+6 meses)</option>
+        <option value="bioest">Bioestimulador (protocolo)</option>
+      </select>
+    </div>
+  </div>
   <div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px">
     <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">💼 Comissão por Procedimento (opcional)</div>
     <div class="fr">
@@ -1814,6 +1952,34 @@ tr:hover td{background:var(--teal-p)}
   <div class="mf">
     <button class="btn btn-o" onclick="closeM('mProc')">Cancelar</button>
     <button class="btn btn-p" onclick="salvarProc()">Salvar Procedimento</button>
+  </div>
+</div></div>
+
+<!-- Modal Tarefa -->
+<div class="mo" id="mTarefa"><div class="mb" style="width:520px">
+  <div class="mh"><h3 id="mTarefaTitle">✅ Nova Tarefa</h3><button class="mc" onclick="closeM('mTarefa')">✕</button></div>
+  <div class="mb-body">
+    <input type="hidden" id="tfEditId">
+    <div class="fg"><label>Título da Tarefa *</label><input type="text" id="tfTitulo" placeholder="Ex: Ligar para fornecedor, Enviar relatório..."></div>
+    <div class="fg"><label>Descrição / Detalhes</label><textarea id="tfDesc" style="min-height:70px" placeholder="Detalhes opcionais..."></textarea></div>
+    <div class="fr">
+      <div class="ff"><label>Data para Realizar *</label><input type="date" id="tfData"></div>
+      <div class="ff"><label>Responsável</label>
+        <select id="tfResp">
+          <option value="">— Nenhum —</option>
+        </select>
+      </div>
+      <div class="ff"><label>Prioridade</label>
+        <select id="tfPrior">
+          <option value="normal">Normal</option>
+          <option value="alta">Alta 🔴</option>
+        </select>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-o" onclick="closeM('mTarefa')">Cancelar</button>
+      <button class="btn btn-p" onclick="salvarTarefa()">Salvar Tarefa</button>
+    </div>
   </div>
 </div></div>
 
@@ -1864,7 +2030,7 @@ const _SB_URL='https://hlgwlfzcucysywrhreau.supabase.co';
 const _SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsZ3dsZnpjdWN5c3l3cmhyZWF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODk1NjIsImV4cCI6MjA5Njc2NTU2Mn0.HGQXsmS6HnalzdActcSaRF-WSwKm7N4c548tn2d65t4';
 const _sb=supabase.createClient(_SB_URL,_SB_KEY);
 const _db={};
-const _KEYS=['pacientes','lancamentos','agendamentos','leads','procedimentos','estoqueHF','equipe','recorrentes','centrosCusto','mktInvest','npsRespostas','auditLog','users','finConfig','sysConfig','identidade','clinicaInfo','reciboCount'];
+const _KEYS=['pacientes','lancamentos','agendamentos','leads','procedimentos','estoqueHF','equipe','recorrentes','centrosCusto','mktInvest','npsRespostas','auditLog','users','finConfig','sysConfig','identidade','clinicaInfo','reciboCount','tarefas','retornos'];
 const ls=(k,d=[])=>{const v=_db['c_'+k];return v!==undefined?v:(()=>{try{return JSON.parse(localStorage.getItem('c_'+k))??d}catch{return d}})()};
 const ss=(k,v)=>{_db['c_'+k]=v;localStorage.setItem('c_'+k,JSON.stringify(v));_sb.from('config').upsert({chave:'c_'+k,valor:v,updated_at:new Date().toISOString()}).then(({error})=>{if(error)console.warn('[sync]',k,error.message)});};
 const lss=k=>localStorage.getItem('c_'+k)||'';
@@ -1976,6 +2142,18 @@ function launchApp(user,email){
   ['agDt','atDt','oDt','lDt','ldDt'].forEach(id=>{const el=$(id);if(el)el.value=td});
   restoreLogos();applyTheme();applyWatermark();applyLogoToSidebar();renderAll();
   auditLog('login','sistema','',`Login: ${email||SESS?.email||''}`);
+  // Aviso de tarefas atrasadas ao entrar
+  setTimeout(()=>{
+    const td=today();
+    const atrasadas=getTarefas().filter(t=>t.status==='pendente'&&t.data&&t.data<td);
+    const minhas=atrasadas.filter(t=>!t.responsavel||t.responsavel===user.name);
+    if(minhas.length){
+      const nomes=minhas.slice(0,3).map(t=>`• ${t.titulo} (${fmtD(t.data)})`).join('\n');
+      const extra=minhas.length>3?`\n...e mais ${minhas.length-3} tarefa(s).`:'';
+      alert(`⚠️ Você tem ${minhas.length} tarefa(s) atrasada(s):\n\n${nomes}${extra}\n\nAcesse a seção Tarefas para visualizar.`);
+    }
+  },1200);
+
   $('dashDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   try{const ind=calcIndicadores();const varEl=$('dashVar');
     if(varEl){const sinal=ind.varMes>=0?'▲':'▼';const cor=ind.varMes>=0?'var(--success)':'var(--danger)';
@@ -2035,9 +2213,10 @@ function go(p){closeMobMenu();
   if(p==='auditoria')renderAuditLog();
   if(p==='retencao')renderRetencao();
   if(p==='manual')renderManual();
+  if(p==='tarefas'){renderTarefas();_populateTfSelects();}
 }
 function renderAll(){
-  renderDash();renderAgenda();renderPacList();renderCRM();renderFin();renderRel();renderUsers();renderTermoPacSel();renderProc();renderEstoque();renderEquipe();renderDRE();renderBackupStats();renderCfg();
+  renderDash();renderAgenda();renderPacList();renderCRM();renderFin();renderRel();renderUsers();renderTermoPacSel();renderProc();renderEstoque();renderEquipe();renderDRE();renderBackupStats();renderCfg();renderTarefas();
   applyTheme();renderAniversarios();
 }
 
@@ -4422,6 +4601,7 @@ function salvarProc(){
     custo:parseFloat($('procCusto').value)||0,
     dur:parseInt($('procDur').value)||60,
     obs:$('procObs').value.trim(),
+    tipoRetorno:$('procRetorno')?.value||'',
     comissaoTipo:comTipo,
     comissaoVal:comVal,
     comissaoProf:comProf};
@@ -4438,6 +4618,7 @@ function editProc(id){
   $('procNome').value=p.nome;$('procEsp').value=p.esp;
   $('procVal').value=p.valor;$('procCusto').value=p.custo||0;
   $('procDur').value=p.dur||60;$('procObs').value=p.obs||'';
+  if($('procRetorno'))$('procRetorno').value=p.tipoRetorno||'';
   // Restore commission
   if($('procComTipo'))$('procComTipo').value=p.comissaoTipo||'';
   if($('procComVal'))$('procComVal').value=p.comissaoVal||0;
@@ -4996,6 +5177,7 @@ function _salvarOrcImpl(modo){
     }
   }
 
+  if(modo==='aceite'&&!editId)_criarRetornos(orc,CPAC.id,CPAC.nome);
   closeM('mOrc');ORC_ITENS=[];window._orcCalc=null;
   ['oDesc','oTotal','oEnt','oObs','orcEditId'].forEach(id=>{const el=$(id);if(el)el.value=''});
   renderFinPac();renderFin();renderDash();
@@ -6269,12 +6451,24 @@ function salvarPgtoOrc(){
   o.pgto=pgto;
   o.status=novoPago>=totalCobrado?'pago':'aceite';
   saveCPAC();
-  // Atualiza lancamento vinculado no financeiro
+  // Atualiza ou cria lancamento vinculado no financeiro
   const lancs=getLancs();
   const lanc=lancs.find(l=>l.orcId===id&&l.tipo==='receita');
   if(lanc){
     lanc.status=o.status==='pago'?'pago':'pendente';
+    lanc.valor=Math.max(lanc.valor||0, novoPago);
     if(o.status==='pago')lanc.data=today();
+    saveLancs(lancs);
+  } else {
+    // Lançamento não existe (orçamento aceito antes do sistema de financeiro) — criar agora
+    const totalBase=o.total||0;
+    const valorLanc=o.taxaOpt==='assumir'?(o.liquidoClinica||totalBase):totalBase;
+    lancs.push({id:uid(),tipo:'receita',data:today(),
+      desc:o.desc,paciente:CPAC.nome,pacId:CPAC.id,
+      categoria:'Orçamento',valor:valorLanc,
+      status:o.status==='pago'?'pago':'pendente',
+      pgto:pgto,parcs:o.parcs||1,orcId:id,
+      obs:`Lançamento criado ao registrar pagamento de ${fmt(valor)}`});
     saveLancs(lancs);
   }
   auditLog('pgto_orc','orcamento',id,`Pagamento de ${fmt(valor)} registrado — ${o.desc}`);
@@ -6336,6 +6530,8 @@ function aceitarOrc(id){
       obs:`Comissão ${proc.comissaoTipo==='pct'?proc.comissaoVal+'%':'R$ '+proc.comissaoVal} — confirmar pagamento ao profissional`});
   });
   ss('lancamentos',l);renderFinPac();renderFin();renderDash();
+  // Criar retornos automáticos de sessão
+  const qtdRetornos=_criarRetornos(o,CPAC.id,CPAC.nome);
   // Check if any HF procedures → offer estoque baixa
   const hasHF=o.itens?.some(it=>{
     const proc=getProcs().find(p=>p.id===it.procId);
@@ -6433,8 +6629,8 @@ function renderFotos(){
 }
 function delFoto(id){if(!confirm('Excluir foto?'))return;CPAC.fotos=(CPAC.fotos||[]).filter(f=>f.id!==id);saveCPAC();renderFotos()}
 // ══ AGENDA ══
-let agDate=new Date();let agV='semana';
-function agView(v){agV=v;document.querySelectorAll('#page-agenda .stab').forEach((el,i)=>el.classList.toggle('on',['semana','dia','lista'][i]===v));renderAgenda()}
+let agDate=new Date();let agV='semana';let _agendRetornoId=null;
+function agView(v){agV=v;document.querySelectorAll('#page-agenda .stab').forEach((el,i)=>el.classList.toggle('on',['semana','dia','lista','retornos'][i]===v));renderAgenda()}
 function agNav(d){agDate=agV==='semana'?new Date(agDate.getTime()+d*7*86400000):new Date(agDate.getTime()+d*86400000);renderAgenda()}
 function renderAgenda(){
   const area=$('agArea');if(!area)return;
@@ -6443,6 +6639,7 @@ function renderAgenda(){
   const sel=$('agPac');if(sel){const p=[...getPacs()].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));sel.innerHTML='<option value="">Selecione...</option>'+p.map(x=>`<option value="${x.id}">${x.nome}</option>`).join('')}
   if(agV==='semana')renderSemana(area,ags);
   else if(agV==='dia')renderDia(area,ags);
+  else if(agV==='retornos')renderRetornosAg(area);
   else renderListaAg(area,ags);
 }
 function weekDays(d){const dow=d.getDay();const m=new Date(d);m.setDate(d.getDate()-(dow===0?6:dow-1));return Array.from({length:7},(_,i)=>{const dd=new Date(m);dd.setDate(m.getDate()+i);return dd})}
@@ -6488,11 +6685,60 @@ function renderListaAg(area,ags){
     <td style="display:flex;gap:4px"><button class="btn btn-g btn-xs" onclick="whtApt('${a.id}')">📱</button><button class="btn btn-d btn-xs" onclick="delApt('${a.id}')">✕</button></td>
   </tr>`).join('')}</tbody></table></div></div>`;
 }
+function renderRetornosAg(area){
+  $('agPer').textContent='Retornos de Sessão';
+  const td=today();
+  const todos=getRetornos().filter(r=>r.status==='pendente'||r.status==='dispensado');
+  const pendentes=todos.filter(r=>r.status==='pendente').sort((a,b)=>a.dataRetorno.localeCompare(b.dataRetorno));
+  const dispensados=todos.filter(r=>r.status==='dispensado').sort((a,b)=>b.dataRetorno.localeCompare(a.dataRetorno));
+  if(!pendentes.length&&!dispensados.length){
+    area.innerHTML='<div class="card"><div class="empty"><p>Nenhum retorno programado. Os retornos são criados automaticamente ao aceitar orçamentos de Toxina, Preenchimento ou Bioestimulador.</p></div></div>';return;
+  }
+  const tipoLabel={toxina:'Toxina Botulínica',ah:'Preenchimento AH',bioest:'Bioestimulador'};
+  const renderRow=r=>{
+    const atrasado=r.dataRetorno<td;
+    const cor=atrasado?'var(--danger)':r.dataRetorno<=_addMeses(td,0)+15?'var(--gold)':'var(--teal)';
+    const hoje15=_addMeses(td.slice(0,7)+'-01',0);// unused, just for ref
+    const badge=atrasado?'<span class="badge b-red">Vencido</span>':r.dataRetorno===td?'<span class="badge b-warn">Hoje</span>':'';
+    return`<tr>
+      <td>${fmtD(r.dataRetorno)}</td>
+      <td style="font-weight:600">${r.pacNome}</td>
+      <td>${r.label||tipoLabel[r.tipo]||r.tipo}</td>
+      <td>${badge}${atrasado?'':''}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-p btn-xs" onclick="agendarRetorno('${r.id}')">📅 Agendar</button>
+        <button class="btn btn-o btn-xs" onclick="dispensarRetorno('${r.id}')">Dispensar</button>
+      </td>
+    </tr>`;
+  };
+  area.innerHTML=`
+    <div class="card" style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">🔔 Retornos Pendentes (${pendentes.length})</div>
+      ${pendentes.length?`<div class="tw"><table><thead><tr><th>Data Prevista</th><th>Paciente</th><th>Procedimento</th><th>Status</th><th>Ações</th></tr></thead><tbody>${pendentes.map(renderRow).join('')}</tbody></table></div>`:'<p style="color:var(--muted);font-size:13px">Nenhum retorno pendente.</p>'}
+    </div>
+    ${dispensados.length?`<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-weight:700;font-size:13px;color:var(--muted)">Dispensados (${dispensados.length})</div><button class="btn btn-d btn-xs" onclick="excluirTodosDispensados()">🗑 Excluir todos</button></div><div class="tw"><table><thead><tr><th>Data</th><th>Paciente</th><th>Procedimento</th><th></th><th>Ações</th></tr></thead><tbody>${dispensados.map(r=>`<tr><td>${fmtD(r.dataRetorno)}</td><td>${r.pacNome}</td><td>${r.label||r.tipo}</td><td><span class="badge b-gray">Dispensado</span></td><td style="display:flex;gap:4px"><button class="btn btn-o btn-xs" onclick="reativarRetorno('${r.id}')">Reativar</button><button class="btn btn-d btn-xs" onclick="excluirRetorno('${r.id}')">🗑</button></td></tr>`).join('')}</tbody></table></div></div>`:''}
+  `;
+}
+function reativarRetorno(id){
+  const arr=getRetornos();const r=arr.find(x=>x.id===id);
+  if(r)r.status='pendente';
+  saveRetornos(arr);renderAgenda();
+}
+function excluirRetorno(id){
+  if(!confirm('Excluir este retorno?'))return;
+  saveRetornos(getRetornos().filter(x=>x.id!==id));renderAgenda();
+}
+function excluirTodosDispensados(){
+  if(!confirm('Excluir todos os retornos dispensados?'))return;
+  saveRetornos(getRetornos().filter(x=>x.status!=='dispensado'));renderAgenda();
+}
 function salvarAgend(){
   const pacId=$('agPac').value;const p=getPacs().find(x=>x.id===pacId);
   const a={id:uid(),data:$('agDt').value,hora:$('agHr').value,dur:$('agDur').value,
     proc:$('agProc').value,prof:$('agProf').value.trim(),obs:$('agObs').value.trim(),
-    status:$('agSt').value,pacId,pacNome:p?.nome||'',pacTel:p?.tel||''};
+    status:$('agSt').value,pacId,pacNome:p?.nome||'',pacTel:p?.tel||'',
+    retornoId:_agendRetornoId||null};
+  _agendRetornoId=null;
   const arr=ls('agendamentos',[]);arr.push(a);ss('agendamentos',arr);
   closeM('mAgend');renderAgenda();renderDash();
   ['agProf','agObs'].forEach(id=>{const el=$(id);if(el)el.value=''});
@@ -6565,13 +6811,46 @@ function viewApt(id){
 }
 function saveAptEdit(id){
   const arr=ls('agendamentos',[]);const a=arr.find(x=>x.id===id);if(!a)return;
+  const prevStatus=a.status;
   a.status=document.getElementById('aptStEdit').value;
   a.data=document.getElementById('aptDtEdit').value;
   a.hora=document.getElementById('aptHrEdit').value;
   a.proc=document.getElementById('aptProcEdit').value;
   ss('agendamentos',arr);
+  if(a.status==='realizado'&&prevStatus!=='realizado'&&a.retornoId){
+    _confirmarSessaoRetorno(a);
+  }
   document.getElementById('aptOverlay')?.remove();
   renderAgenda();renderDash();
+}
+function _confirmarSessaoRetorno(apt){
+  const retornos=getRetornos();
+  const r=retornos.find(x=>x.id===apt.retornoId);if(!r)return;
+  r.status='dispensado';r.realizadoEm=apt.data;
+  const intervalo={toxina:3,ah:6,bioest:4}[r.tipo]||3;
+
+  if(r.tipo==='toxina'||r.tipo==='ah'){
+    // Recorrência infinita: criar próximo retorno a partir da data real da sessão
+    const label=r.tipo==='toxina'?'Retorno Toxina Botulínica':'Retorno Preenchimento AH';
+    retornos.push({id:uid(),pacId:r.pacId,pacNome:r.pacNome,tipo:r.tipo,
+      label,dataRetorno:_addMeses(apt.data,intervalo),
+      orcOrigem:r.orcOrigem,status:'pendente',criadoEm:today()});
+  } else if(r.tipo==='bioest'){
+    // Recalcular sessões pendentes restantes do protocolo
+    const proximas=retornos
+      .filter(x=>x.pacId===r.pacId&&x.tipo==='bioest'&&x.status==='pendente')
+      .sort((a,b)=>a.dataRetorno.localeCompare(b.dataRetorno));
+    if(proximas.length>0){
+      // Ainda há sessões do protocolo: ajustar datas a partir da data real
+      proximas.forEach((p,i)=>{p.dataRetorno=_addMeses(apt.data,(i+1)*intervalo);});
+    } else {
+      // Protocolo concluído: criar manutenção anual a partir desta sessão
+      retornos.push({id:uid(),pacId:r.pacId,pacNome:r.pacNome,tipo:'bioest',
+        label:'Bioestimulador — Manutenção Anual',dataRetorno:_addMeses(apt.data,12),
+        orcOrigem:r.orcOrigem,status:'pendente',criadoEm:today()});
+    }
+  }
+  saveRetornos(retornos);renderDash();renderAgenda();
 }
 function delAptConfirm(id){
   if(!confirm('Excluir este agendamento?'))return;
@@ -7721,6 +8000,201 @@ function tSolicitacao(p){
   </div>
 </div>`}
 
+// ══ TAREFAS ══
+const getTarefas=()=>ls('tarefas',[]);
+const saveTarefas=d=>ss('tarefas',d);
+const getRetornos=()=>ls('retornos',[]);
+const saveRetornos=d=>ss('retornos',d);
+
+function _populateTfSelects(){
+  const usersObj=ls('users',{});
+  const users=Object.values(usersObj).filter(u=>u&&u.name).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
+  const opts='<option value="">— Nenhum —</option>'+users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');
+  const respSel=$('tfResp');if(respSel)respSel.innerHTML=opts;
+  const filtSel=$('tfFiltResp');
+  if(filtSel){filtSel.innerHTML='<option value="">Todos os responsáveis</option>'+users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('');}
+}
+
+function abrirNovaTarefa(){
+  openM('mTarefa');
+  if($('mTarefaTitle'))$('mTarefaTitle').textContent='✅ Nova Tarefa';
+  if($('tfEditId'))$('tfEditId').value='';
+  if($('tfTitulo'))$('tfTitulo').value='';
+  if($('tfDesc'))$('tfDesc').value='';
+  if($('tfData'))$('tfData').value=today();
+  if($('tfResp'))$('tfResp').value='';
+  if($('tfPrior'))$('tfPrior').value='normal';
+  _populateTfSelects();
+}
+
+function salvarTarefa(){
+  const titulo=$('tfTitulo').value.trim();
+  if(!titulo)return alert('Informe o título da tarefa.');
+  const data=$('tfData').value;
+  if(!data)return alert('Informe a data para realizar.');
+  const editId=$('tfEditId').value;
+  const t={id:editId||uid(),titulo,desc:$('tfDesc').value.trim(),
+    data,responsavel:$('tfResp')?.value||'',
+    prioridade:$('tfPrior')?.value||'normal',
+    status:'pendente',criadaEm:editId?undefined:today()};
+  const arr=getTarefas();
+  if(editId){const i=arr.findIndex(x=>x.id===editId);if(i>=0){t.status=arr[i].status;t.criadaEm=arr[i].criadaEm;arr[i]=t;}else arr.push(t);}
+  else arr.push(t);
+  saveTarefas(arr);closeM('mTarefa');renderTarefas();_atualizarBadgeTarefas();
+}
+
+function concluirTarefa(id){
+  const arr=getTarefas();const t=arr.find(x=>x.id===id);
+  if(!t)return;
+  t.status=t.status==='concluida'?'pendente':'concluida';
+  t.concluidaEm=t.status==='concluida'?new Date().toLocaleString('pt-BR'):null;
+  saveTarefas(arr);renderTarefas();_atualizarBadgeTarefas();renderDash();
+}
+
+function editarTarefa(id){
+  const t=getTarefas().find(x=>x.id===id);if(!t)return;
+  _populateTfSelects();
+  $('tfEditId').value=t.id;
+  $('tfTitulo').value=t.titulo;
+  $('tfDesc').value=t.desc||'';
+  $('tfData').value=t.data;
+  if($('tfResp'))$('tfResp').value=t.responsavel||'';
+  if($('tfPrior'))$('tfPrior').value=t.prioridade||'normal';
+  if($('mTarefaTitle'))$('mTarefaTitle').textContent='✏️ Editar Tarefa';
+  openM('mTarefa');
+}
+
+function deletarTarefa(id){
+  if(!confirm('Excluir esta tarefa?'))return;
+  saveTarefas(getTarefas().filter(x=>x.id!==id));renderTarefas();_atualizarBadgeTarefas();
+}
+
+function _atualizarBadgeTarefas(){
+  const pendentes=getTarefas().filter(x=>x.status==='pendente').length;
+  const nb=$('nbTarefas');if(!nb)return;
+  nb.textContent=pendentes;nb.style.display=pendentes>0?'inline':'none';
+}
+
+function renderTarefas(){
+  _atualizarBadgeTarefas();
+  const area=$('tarefasArea');if(!area)return;
+  const btnWrap=$('btnNovaTarefaWrap');
+  if(btnWrap)btnWrap.innerHTML=isMaster()?'<button class="btn btn-p" onclick="abrirNovaTarefa()">+ Nova Tarefa</button>':'';
+  let tarefas=getTarefas();
+  const filtResp=$('tfFiltResp')?.value||'';
+  const filtStatus=$('tfFiltStatus')?.value||'';
+  if(filtResp)tarefas=tarefas.filter(t=>t.responsavel===filtResp);
+  if(filtStatus)tarefas=tarefas.filter(t=>t.status===filtStatus);
+  tarefas.sort((a,b)=>{if(a.status!==b.status)return a.status==='pendente'?-1:1;return(a.data||'').localeCompare(b.data||'');});
+  if(!tarefas.length){area.innerHTML='<div class="card"><div class="empty"><p>Nenhuma tarefa encontrada. Clique em "+ Nova Tarefa" para começar.</p></div></div>';return;}
+  // Agrupar por data
+  const grupos={};
+  tarefas.forEach(t=>{const k=t.data||'sem-data';if(!grupos[k])grupos[k]=[];grupos[k].push(t);});
+  const hoje=today();
+  area.innerHTML=Object.entries(grupos).sort(([a],[b])=>a.localeCompare(b)).map(([data,ts])=>{
+    const isHoje=data===hoje;
+    const isAtrasada=data<hoje;
+    const labelData=data==='sem-data'?'Sem data definida':isHoje?'📅 Hoje — '+fmtD(data):(isAtrasada?'⚠️ Atrasadas — '+fmtD(data):fmtD(data));
+    const corHeader=isHoje?'var(--teal)':isAtrasada?'var(--danger)':'var(--text)';
+    return`<div class="card" style="margin-bottom:14px">
+      <div style="font-weight:700;font-size:13px;color:${corHeader};margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border)">${labelData}</div>
+      ${ts.map(t=>{
+        const concluida=t.status==='concluida';
+        const alta=t.prioridade==='alta';
+        return`<div style="display:flex;align-items:flex-start;gap:12px;padding:10px;border-radius:8px;margin-bottom:6px;background:var(--bg);border-left:4px solid ${concluida?'var(--success)':alta?'var(--danger)':'var(--teal)'}">
+          <input type="checkbox" ${concluida?'checked':''} onchange="concluirTarefa('${t.id}')" style="margin-top:3px;width:16px;height:16px;cursor:pointer;accent-color:var(--teal)">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:13px;text-decoration:${concluida?'line-through':'none'};color:${concluida?'var(--muted)':'var(--text)'}">${t.titulo}${alta&&!concluida?` <span style="color:var(--danger);font-size:11px">🔴 Alta</span>`:''}
+            </div>
+            ${t.desc?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${t.desc}</div>`:''}
+            <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">
+              ${t.responsavel?`<span style="font-size:11px;color:var(--teal-d)">👤 ${t.responsavel}</span>`:''}
+              ${concluida&&t.concluidaEm?`<span style="font-size:11px;color:var(--success)">✅ Concluída em ${t.concluidaEm}</span>`:''}
+            </div>
+          </div>
+          ${isMaster()?`<div style="display:flex;gap:4px;flex-shrink:0">
+            <button class="btn btn-o btn-xs" onclick="editarTarefa('${t.id}')" title="Editar">✏️</button>
+            <button class="btn btn-d btn-xs" onclick="deletarTarefa('${t.id}')" title="Excluir">🗑</button>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ══ RETORNOS DE SESSÃO ══
+function _addMeses(dataStr,meses){
+  const d=new Date(dataStr+'T12:00:00');
+  d.setMonth(d.getMonth()+meses);
+  return d.toISOString().split('T')[0];
+}
+
+function _criarRetornos(orc,pacId,pacNome){
+  const procs=getProcs();
+  const retornos=getRetornos();
+  const tiposNesteorc=new Set();
+  // Detectar tipos de retorno nos itens do orçamento
+  (orc.itens||[]).forEach(it=>{
+    const proc=procs.find(p=>p.id===it.procId);
+    if(proc?.tipoRetorno){tiposNesteorc.add(proc.tipoRetorno);return;}
+    // Fallback keyword se tipoRetorno não configurado no cadastro
+    const nm=(proc?.nome||it.desc||'').toLowerCase();
+    if(nm.includes('toxina')||nm.includes('botox')||nm.includes('botulínica')||nm.includes('botulinica'))tiposNesteorc.add('toxina');
+    if(nm.includes('preenchimento')||nm.includes('preenchedor')||nm.includes('ácido hial')||nm.includes('acido hial')||nm.includes('rinomodel')||/\bah\b/.test(nm))tiposNesteorc.add('ah');
+    if(nm.includes('bioest')||nm.includes('sculptra')||nm.includes('radiesse')||nm.includes('ellansé')||nm.includes('ellanse'))tiposNesteorc.add('bioest');
+  });
+  // Verificar também a descrição do orçamento (sempre, como reforço)
+  const _descOrc=(orc.desc||'').toLowerCase();
+  if(_descOrc.includes('toxina')||_descOrc.includes('botox')||_descOrc.includes('botulínica')||_descOrc.includes('botulinica'))tiposNesteorc.add('toxina');
+  if(_descOrc.includes('preenchimento')||_descOrc.includes('preenchedor')||_descOrc.includes('ácido hial')||_descOrc.includes('acido hial')||_descOrc.includes('rinomodel')||/\bah\b/.test(_descOrc))tiposNesteorc.add('ah');
+  if(_descOrc.includes('bioest')||_descOrc.includes('sculptra')||_descOrc.includes('radiesse'))tiposNesteorc.add('bioest');
+  if(tiposNesteorc.size===0)return; // nenhum retorno a criar
+  const dataBase=orc.data||today();
+  const novos=[];
+  tiposNesteorc.forEach(tipo=>{
+    if(tipo==='toxina'){
+      novos.push({id:uid(),pacId,pacNome,tipo:'toxina',label:'Retorno Toxina Botulínica',dataRetorno:_addMeses(dataBase,3),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
+    } else if(tipo==='ah'){
+      novos.push({id:uid(),pacId,pacNome,tipo:'ah',label:'Retorno Preenchimento AH',dataRetorno:_addMeses(dataBase,6),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
+    } else if(tipo==='bioest'){
+      // Protocolo: 3 sessões totais. Sessão atual = 1ª (ou retorno).
+      // sessAnt conta apenas retornos DISPENSADOS (= sessão efetivamente realizada)
+      const sessAnt=retornos.filter(r=>r.pacId===pacId&&r.tipo==='bioest'&&r.status==='dispensado').length;
+      if(sessAnt<2){
+        // Ainda dentro do protocolo: sugerir as sessões restantes
+        const faltam=2-sessAnt;
+        const intervalos=[4,8].slice(sessAnt,sessAnt+faltam);
+        intervalos.forEach((m,i)=>{
+          novos.push({id:uid(),pacId,pacNome,tipo:'bioest',label:`Bioestimulador — Sessão ${sessAnt+i+2} de 3`,dataRetorno:_addMeses(dataBase,m-sessAnt*4),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
+        });
+      } else {
+        // Protocolo completo — manutenção anual a partir desta sessão (última das 3)
+        novos.push({id:uid(),pacId,pacNome,tipo:'bioest',label:'Bioestimulador — Manutenção Anual',dataRetorno:_addMeses(dataBase,12),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
+      }
+    }
+  });
+  if(novos.length){saveRetornos([...retornos,...novos]);}
+  return novos.length;
+}
+
+function agendarRetorno(retornoId){
+  const r=getRetornos().find(x=>x.id===retornoId);if(!r)return;
+  _agendRetornoId=retornoId;
+  openM('mAgend');
+  setTimeout(()=>{
+    const pacSel=$('agPac');if(pacSel){pacSel.value=r.pacId;if(pacSel.onchange)pacSel.onchange();}
+    if($('agData'))$('agData').value=r.dataRetorno;
+    if($('agProc'))$('agProc').value=r.label;
+  },80);
+}
+
+function dispensarRetorno(id){
+  if(!confirm('Dispensar este aviso de retorno?'))return;
+  const arr=getRetornos();const r=arr.find(x=>x.id===id);
+  if(r)r.status='dispensado';
+  saveRetornos(arr);renderDash();
+}
+
 // ══ RELATÓRIOS ══
 let CREL='fat';
 function relTab(t){
@@ -8458,6 +8932,70 @@ const MANUAL_SECOES=[
   <li>Excluir dados sensíveis</li>
 </ul>
 <div class="manual-alerta aviso">⚠️ Se o usuário master for excluído ou a senha esquecida, não será possível realizar ações sensíveis. Mantenha sempre pelo menos um usuário master ativo.</div>
+`},
+{id:'tarefas',titulo:'Tarefas',icone:'✅',conteudo:`
+<h3>Tarefas — Controle de Produtividade</h3>
+<p>Ferramenta para o master orientar e direcionar a equipe, criando tarefas com responsável, prazo e prioridade. Acessível pelo menu lateral em <strong>Tarefas</strong>.</p>
+<h4>Criar uma tarefa</h4>
+<ol>
+  <li>Clique em <strong>+ Nova Tarefa</strong> (visível apenas para perfil Master)</li>
+  <li>Informe: título, descrição opcional, data para realizar, responsável e prioridade</li>
+  <li>O campo <strong>Responsável</strong> lista todos os usuários cadastrados no sistema, incluindo os masters</li>
+  <li>Clique em <strong>Salvar Tarefa</strong></li>
+</ol>
+<h4>Permissões por perfil</h4>
+<ul>
+  <li><strong>Master:</strong> cria, edita, exclui e conclui qualquer tarefa</li>
+  <li><strong>Outros usuários:</strong> visualizam todas as tarefas e marcam conclusão pelo checkbox — sem acesso a criar, editar ou excluir</li>
+</ul>
+<h4>Organização e filtros</h4>
+<ul>
+  <li>Tarefas são agrupadas por data: <strong>Hoje</strong> (verde), <strong>Atrasadas</strong> (vermelho), datas futuras</li>
+  <li>Filtre por responsável ou por status (pendentes / concluídas) nos seletores do topo</li>
+  <li>Prioridade <strong>Alta 🔴</strong> destaca a tarefa com borda vermelha</li>
+</ul>
+<h4>Avisos automáticos</h4>
+<ul>
+  <li><strong>Badge</strong> no menu lateral mostra a quantidade de tarefas pendentes em tempo real</li>
+  <li><strong>Dashboard</strong> exibe tarefas atrasadas (com badge "Atrasada") e tarefas do dia atual</li>
+  <li><strong>Ao fazer login</strong>, se houver tarefas atrasadas atribuídas ao usuário, um aviso é exibido automaticamente com até 3 tarefas listadas</li>
+</ul>
+<div class="manual-alerta dica">📌 Use tarefas para delegar ações como: ligar para paciente, enviar resultado de exame, verificar estoque, confirmar agendamentos.</div>
+`},
+{id:'retornos',titulo:'Retornos de Sessão',icone:'🔔',conteudo:`
+<h3>Retornos de Sessão — Recorrência Automática</h3>
+<p>O sistema cria automaticamente lembretes de retorno ao aceitar orçamentos com procedimentos de Harmonização Facial, garantindo que nenhum paciente caia fora da recorrência.</p>
+<h4>Como funciona a criação automática</h4>
+<p>Ao clicar em <strong>Aceitar e Lançar no Financeiro</strong> em um orçamento, o sistema detecta os procedimentos pelo nome cadastrado ou por palavras-chave e programa os retornos:</p>
+<ul>
+  <li><strong>Toxina Botulínica</strong> (botox, toxina, botulínica) → retorno em <strong>+3 meses</strong></li>
+  <li><strong>Preenchimento AH</strong> (preenchedor, preenchimento, ácido hial, rinomodelação) → retorno em <strong>+6 meses</strong></li>
+  <li><strong>Bioestimulador</strong> (bioestimulador, sculptra, radiesse) → protocolo de <strong>3 sessões</strong>: sugere Sessões 2 e 3 nos meses +4 e +8. Após o protocolo, <strong>Manutenção Anual</strong> em +12 meses</li>
+</ul>
+<div class="manual-alerta info">💡 Um único orçamento pode ter múltiplos procedimentos — o sistema detecta todos e cria os retornos correspondentes de forma independente.</div>
+<h4>Visualizar retornos — Aba Agenda → 🔔 Retornos</h4>
+<ul>
+  <li><strong>Retornos Pendentes:</strong> lista cronológica com data prevista, paciente, procedimento e ações</li>
+  <li>Datas vencidas aparecem em <strong>vermelho</strong></li>
+  <li>Retornos próximos (15 dias) aparecem no <strong>Dashboard</strong> como alertas</li>
+</ul>
+<h4>Fluxo de agendamento e confirmação</h4>
+<ol>
+  <li>Na aba <strong>Retornos</strong>, clique em <strong>📅 Agendar</strong> — o sistema pré-preenche o agendamento com o paciente, data e procedimento</li>
+  <li>Salve o agendamento</li>
+  <li>Quando o paciente comparecer, abra o agendamento na Agenda e mude o status para <strong>Realizado</strong> → Salvar</li>
+  <li>O sistema automaticamente: <strong>dispensa</strong> o retorno vinculado e <strong>cria o próximo retorno</strong> a partir da data real do atendimento</li>
+</ol>
+<div class="manual-alerta dica">📌 Se a sessão foi antecipada ou adiada, o sistema recalcula as datas das sessões seguintes a partir da data real — mantendo os intervalos corretos independentemente de variações na agenda.</div>
+<h4>Ações disponíveis na aba Retornos</h4>
+<ul>
+  <li><strong>Dispensar:</strong> marca o retorno como dispensado manualmente (sem criar próximo)</li>
+  <li><strong>Reativar:</strong> volta um retorno dispensado para pendente</li>
+  <li><strong>🗑 Excluir / Excluir todos dispensados:</strong> remove retornos que não são mais necessários</li>
+</ul>
+<h4>Configurar retorno no cadastro do procedimento</h4>
+<p>Em <strong>Administração → Procedimentos</strong>, cada procedimento tem o campo <strong>Recorrência / Retorno automático</strong>. Ao definir o tipo (Toxina, AH ou Bioestimulador), o sistema usa essa configuração com prioridade sobre a detecção por palavras-chave.</p>
+<div class="manual-alerta aviso">⚠️ Se o procedimento não tiver o tipo de retorno configurado e o nome não contiver palavras-chave reconhecidas, nenhum retorno será gerado. Configure o campo no cadastro do procedimento para garantir a detecção.</div>
 `}
 ];
 
@@ -8593,6 +9131,53 @@ function renderDash(){
     <div><div style="font-weight:600">${x.desc}</div><div style="font-size:11px;color:var(--muted)">${fmtD(x.data)} · ${x.paciente||'Geral'}</div></div>
     <span class="badge ${x.tipo==='receita'?'b-green':'b-red'}">${fmt(x.valor)}</span>
   </div>`).join('')||'<div class="empty"><p>Sem lançamentos</p></div>';
+  // Retornos de sessão
+  const dr=$('dashRetornos');
+  if(dr){
+    const hoje15=new Date();hoje15.setDate(hoje15.getDate()+15);
+    const lim=hoje15.toISOString().split('T')[0];
+    const alertas=getRetornos().filter(r=>r.status==='pendente'&&r.dataRetorno<=lim).sort((a,b)=>a.dataRetorno.localeCompare(b.dataRetorno));
+    if(alertas.length){
+      dr.innerHTML=`<div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">🔔 Retornos de Sessão</div>${alertas.map(r=>{
+        const atrasado=r.dataRetorno<td;
+        const cor=atrasado?'var(--danger)':'var(--gold)';
+        const label=atrasado?'Vencido':'Vence em breve';
+        return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;margin-bottom:6px;background:var(--bg);border-left:4px solid ${cor}">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px">${r.pacNome}</div>
+            <div style="font-size:12px;color:var(--muted)">${r.label} — ${fmtD(r.dataRetorno)}</div>
+          </div>
+          <span class="badge ${atrasado?'b-red':'b-warn'}">${label}</span>
+          <button class="btn btn-p btn-xs" onclick="agendarRetorno('${r.id}')">Agendar</button>
+          <button class="btn btn-o btn-xs" onclick="dispensarRetorno('${r.id}')">Dispensar</button>
+        </div>`;
+      }).join('')}</div>`;
+    } else dr.innerHTML='';
+  }
+  // Tarefas de hoje no dashboard
+  const dth=$('dashTarefasHoje');
+  if(dth){
+    const todas=getTarefas().filter(t=>t.status==='pendente');
+    const atrasadas=todas.filter(t=>t.data&&t.data<td).sort((a,b)=>a.data.localeCompare(b.data));
+    const hoje=todas.filter(t=>t.data===td);
+    const renderItemTarefa=t=>{
+      const isAtrasada=t.data<td;
+      const cor=isAtrasada?'var(--danger)':t.prioridade==='alta'?'var(--danger)':'var(--teal)';
+      return`<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;margin-bottom:6px;background:var(--bg);border-left:4px solid ${cor}">
+        <input type="checkbox" onchange="concluirTarefa('${t.id}')" style="width:16px;height:16px;cursor:pointer;accent-color:var(--teal)">
+        <div style="flex:1"><div style="font-weight:600;font-size:13px">${t.titulo}</div>
+        <div style="font-size:11px;color:var(--muted)">${isAtrasada?`⚠️ Prevista para ${fmtD(t.data)}`:''}${t.responsavel?` 👤 ${t.responsavel}`:''}</div></div>
+        ${isAtrasada?'<span class="badge b-red">Atrasada</span>':t.prioridade==='alta'?'<span class="badge b-red">Alta 🔴</span>':''}
+      </div>`;
+    };
+    if(atrasadas.length||hoje.length){
+      dth.innerHTML=`<div class="card">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">✅ Tarefas${atrasadas.length?` <span style="color:var(--danger);font-size:12px">(${atrasadas.length} atrasada${atrasadas.length>1?'s':''})</span>`:''}</div>
+        ${atrasadas.map(renderItemTarefa).join('')}
+        ${hoje.length?`<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:${atrasadas.length?'10px':0} 0 6px">Hoje (${hoje.length})</div>${hoje.map(renderItemTarefa).join('')}`:''}
+      </div>`;
+    } else dth.innerHTML='';
+  }
   // CRM
   const dc=$('dashCRM');if(dc)dc.innerHTML=ESTGS.map(st=>{const n=ld.filter(x=>x.estagio===st.id).length;const pct=ld.length?Math.round(n/ld.length*100):0;
     return`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
