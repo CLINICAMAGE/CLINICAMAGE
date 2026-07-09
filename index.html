@@ -1290,7 +1290,7 @@ tr:hover td{background:var(--teal-p)}
   <div class="ff" style="flex:0 0 130px"><label>Nasc.</label><input type="date" id="pNasc"></div>
   <div class="ff" style="flex:0 0 90px"><label>Sexo</label><select id="pSexo"><option value="">-</option><option>Feminino</option><option>Masculino</option><option>Outro</option></select></div></div>
   <div class="fr"><div class="ff"><label>CPF</label><input type="text" id="pCPF" placeholder="000.000.000-00"></div>
-  <div class="ff"><label>Telefone / WhatsApp</label><input type="text" id="pTel"></div>
+  <div class="ff"><label>Telefone / WhatsApp</label><input type="text" id="pTel" placeholder="(11) 91234-5678" maxlength="15" oninput="maskTel(this)"></div>
   <div class="ff"><label>E-mail</label><input type="text" id="pEmail"></div></div>
   <div class="fr"><div class="ff"><label>Endereço</label><input type="text" id="pEnd"></div>
   <div class="ff" style="flex:0 0 180px"><label>Cidade</label><input type="text" id="pCidade"></div></div>
@@ -2037,6 +2037,7 @@ const lss=k=>localStorage.getItem('c_'+k)||'';
 const sss=(k,v)=>localStorage.setItem('c_'+k,v);
 const fmt=v=>'R$ '+parseFloat(v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 const fmtD=d=>{if(!d)return'-';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`};
+function maskTel(el){let v=el.value.replace(/\D/g,'').slice(0,11);if(v.length<=10)v=v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3').replace(/-$/,'');else v=v.replace(/(\d{2})(\d{5})(\d{0,4})/,'($1) $2-$3').replace(/-$/,'');el.value=v;}
 const today=()=>new Date().toISOString().split('T')[0];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).substr(2,5);
 const calcIdade=n=>{if(!n)return'?';return Math.floor((new Date()-new Date(n))/(365.25*24*3600*1000))};
