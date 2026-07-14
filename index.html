@@ -5198,6 +5198,7 @@ function _salvarOrcImpl(modo){
   }
 
   if(modo==='aceite'&&!editId)_criarRetornos(orc,CPAC.id,CPAC.nome);
+  if(editId&&orc.status==='aceite')_recalcularRetornosOrc(editId,orc.data);
   closeM('mOrc');ORC_ITENS=[];window._orcCalc=null;
   ['oDesc','oTotal','oEnt','oObs','orcEditId'].forEach(id=>{const el=$(id);if(el)el.value=''});
   renderFinPac();renderFin();renderDash();
@@ -6727,6 +6728,7 @@ function renderRetornosAg(area){
       <td>${badge}${atrasado?'':''}</td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-p btn-xs" onclick="agendarRetorno('${r.id}')">📅 Agendar</button>
+        <button class="btn btn-o btn-xs" onclick="editarDataRetorno('${r.id}')">✏️ Data</button>
         <button class="btn btn-o btn-xs" onclick="dispensarRetorno('${r.id}')">Dispensar</button>
       </td>
     </tr>`;
@@ -6738,6 +6740,30 @@ function renderRetornosAg(area){
     </div>
     ${dispensados.length?`<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-weight:700;font-size:13px;color:var(--muted)">Dispensados (${dispensados.length})</div><button class="btn btn-d btn-xs" onclick="excluirTodosDispensados()">🗑 Excluir todos</button></div><div class="tw"><table><thead><tr><th>Data</th><th>Paciente</th><th>Procedimento</th><th></th><th>Ações</th></tr></thead><tbody>${dispensados.map(r=>`<tr><td>${fmtD(r.dataRetorno)}</td><td>${r.pacNome}</td><td>${r.label||r.tipo}</td><td><span class="badge b-gray">Dispensado</span></td><td style="display:flex;gap:4px"><button class="btn btn-o btn-xs" onclick="reativarRetorno('${r.id}')">Reativar</button><button class="btn btn-d btn-xs" onclick="excluirRetorno('${r.id}')">🗑</button></td></tr>`).join('')}</tbody></table></div></div>`:''}
   `;
+}
+function _recalcularRetornosOrc(orcId,novaData){
+  const arr=getRetornos();let changed=false;
+  arr.forEach(r=>{
+    if(r.orcOrigem!==orcId||r.status!=='pendente')return;
+    let meses=r.tipo==='toxina'?3:r.tipo==='ah'?6:4;
+    if(r.tipo==='bioest'){
+      const lbl=(r.label||'').toLowerCase();
+      if(lbl.includes('sessão 3')||lbl.includes('sessao 3'))meses=8;
+      else if(lbl.includes('manutenção')||lbl.includes('manutencao'))meses=12;
+      else meses=4;
+    }
+    r.dataRetorno=_addMeses(novaData,meses);changed=true;
+  });
+  if(changed)saveRetornos(arr);
+}
+function editarDataRetorno(id){
+  const arr=getRetornos();const r=arr.find(x=>x.id===id);if(!r)return;
+  const nova=prompt(`Editar data do retorno de ${r.pacNome}\n(${r.label||r.tipo})\n\nData atual: ${fmtD(r.dataRetorno)}\n\nDigite a nova data (DD/MM/AAAA):`,fmtD(r.dataRetorno));
+  if(!nova)return;
+  const parts=nova.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!parts)return alert('Data inválida. Use o formato DD/MM/AAAA.');
+  r.dataRetorno=`${parts[3]}-${parts[2]}-${parts[1]}`;
+  saveRetornos(arr);renderAgenda();
 }
 function reativarRetorno(id){
   const arr=getRetornos();const r=arr.find(x=>x.id===id);
