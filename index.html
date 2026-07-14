@@ -5416,7 +5416,7 @@ function novaAvaliacaoOdonto(){
   if(!CPAC.odontoAvals)CPAC.odontoAvals=[];
   // Migrate legacy odontograma
   if(Object.keys(CPAC.odontograma||{}).length>0&&!CPAC.odontoAvals.length){
-    CPAC.odontoAvals.push({id:uid(),data:CPAC.cadastro||today(),label:'Avaliação inicial',dentes:CPAC.odontograma||{},registros:[]});
+    CPAC.odontoAvals.push({id:uid(),data:today(),label:'Avaliação inicial',dentes:CPAC.odontograma||{},registros:[]});
   }
   const label=prompt('Nome desta avaliação (ex: Reavaliação 2025):','Avaliação '+new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'}));
   if(!label)return;
@@ -5642,7 +5642,7 @@ function novaAvaliacaoFace(){
   if(!CPAC)return;
   if(!CPAC.faceAvals)CPAC.faceAvals=[];
   if((CPAC.facePoints||[]).length>0&&!CPAC.faceAvals.length){
-    CPAC.faceAvals.push({id:uid(),data:CPAC.cadastro||today(),label:'Avaliação inicial',points:CPAC.facePoints||[]});
+    CPAC.faceAvals.push({id:uid(),data:today(),label:'Avaliação inicial',points:CPAC.facePoints||[]});
   }
   const label=prompt('Nome desta avaliação:','Avaliação '+new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'}));
   if(!label)return;
