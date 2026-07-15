@@ -758,7 +758,7 @@ tr:hover td{background:var(--teal-p)}
                   <div id="faceTotalizador" style="display:none;background:var(--teal-p);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px"></div>
                   <div id="faceRegList" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:500px"></div>
                   <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-                    <button class="btn btn-p btn-sm" onclick="FACE_CLICK_X=130;FACE_CLICK_Y=165;if($('fpReg'))$('fpReg').value='';openM('mFaceP')">+ Adicionar Aplicação</button>
+                    <button class="btn btn-p btn-sm" onclick="FACE_CLICK_X=130;FACE_CLICK_Y=165;if($('fpReg'))$('fpReg').value='';if($('fpData'))$('fpData').value=today();openM('mFaceP')">+ Adicionar Aplicação</button>
                     <button class="btn btn-o btn-sm" onclick="novaAvaliacaoFace()">📋 Nova Avaliação</button>
                   </div>
                   <div style="margin-top:10px">
@@ -1559,7 +1559,8 @@ tr:hover td{background:var(--teal-p)}
     <option value="peeling">Peeling Químico</option>
     <option value="outro">Outro</option>
   </select></div>
-  <div class="fr"><div class="ff"><label>Produto / Marca</label><input type="text" id="fpProd"></div></div>
+  <div class="fr"><div class="ff"><label>Produto / Marca</label><input type="text" id="fpProd"></div>
+  <div class="ff" style="flex:0 0 140px"><label>Data da aplicação</label><input type="date" id="fpData"></div></div>
   <div class="fr"><div class="ff"><label>Dose / Quantidade</label><input type="text" id="fpDose" placeholder="Ex: 20U, 0.5ml"></div>
   <div class="ff"><label>Lote</label><input type="text" id="fpLote"></div></div>
   <div class="ff" style="margin-bottom:12px"><label>Observações</label><textarea id="fpObs" style="min-height:55px"></textarea></div>
@@ -4851,9 +4852,14 @@ function renderImportArea(){
     }).join('')}</div>`;
   } else {
     const avals=getFaceAvals?getFaceAvals():[];
-    // Seleciona avaliação escolhida no seletor do modal de importação, ou a atual do diagrama
-    const importAvalIdx=parseInt($('impFaceAvalSel')?.value??($('faceAvalSel')?.value||'0'))||0;
-    const avalImport=avals.length?avals[Math.min(importAvalIdx,avals.length-1)]:null;
+    // Usa avaliação selecionada no modal de importação, ou a que está ativa no diagrama
+    let avalImport;
+    if($('impFaceAvalSel')?.value!==undefined&&$('impFaceAvalSel')?.value!==''){
+      const idx=parseInt($('impFaceAvalSel').value)||0;
+      avalImport=avals[Math.min(idx,avals.length-1)];
+    } else {
+      avalImport=getCurrAvalFace?getCurrAvalFace():null;
+    }
     const fp=avalImport?avalImport.points||[]:(CPAC.facePoints||[]);
     const avalSel=avals.length>1?`<div style="margin-bottom:14px">
       <label style="font-size:12px;font-weight:600;color:var(--teal-d);display:block;margin-bottom:6px">📋 Avaliação a importar:</label>
@@ -5912,6 +5918,7 @@ function initFaceCanvas(){
     // Suggest region name based on position
     const regions=guessRegion(pos.x,pos.y);
     if($('fpReg'))$('fpReg').value=regions;
+    if($('fpData'))$('fpData').value=today();
     openM('mFaceP');
   }
   canvas.addEventListener('click',handleClick);
@@ -6021,7 +6028,7 @@ function renderFace(){
   const p=CPAC;if(!p)return;
   // Migrate legacy facePoints to avaliações
   if((p.facePoints||[]).length>0&&(!p.faceAvals||!p.faceAvals.length)){
-    p.faceAvals=[{id:uid(),data:p.cadastro||today(),label:'Avaliação inicial',points:p.facePoints||[]}];
+    p.faceAvals=[{id:uid(),data:today(),label:'Avaliação inicial',points:p.facePoints||[]}];
     saveCPAC();
   }
   renderFaceAvalSel();
@@ -6074,14 +6081,15 @@ function salvarFaceP(){
       pts[i]={...pts[i],
         regiao:$('fpReg').value,rl:$('fpReg').value,
         tipo:$('fpTipo').value,produto:$('fpProd').value.trim(),
-        dose:$('fpDose').value.trim(),lote:$('fpLote').value.trim(),obs:$('fpObs').value.trim()};
+        dose:$('fpDose').value.trim(),lote:$('fpLote').value.trim(),obs:$('fpObs').value.trim(),
+        data:$('fpData')?.value||pts[i].data||today()};
     }
     FACE_EDIT_ID=null;
   } else {
     const newPt={id:uid(),cx:FACE_CLICK_X,cy:FACE_CLICK_Y,
       regiao:$('fpReg').value,rl:$('fpReg').value,
       tipo:$('fpTipo').value,produto:$('fpProd').value.trim(),dose:$('fpDose').value.trim(),
-      lote:$('fpLote').value.trim(),obs:$('fpObs').value.trim(),data:today()};
+      lote:$('fpLote').value.trim(),obs:$('fpObs').value.trim(),data:$('fpData')?.value||today()};
     // Save to current avaliação
     const av=getCurrAvalFace();
     if(av){if(!av.points)av.points=[];av.points.push(newPt);}
@@ -6114,6 +6122,7 @@ function editFaceP(id){
   if($('fpDose'))$('fpDose').value=f.dose||'';
   if($('fpLote'))$('fpLote').value=f.lote||'';
   if($('fpObs'))$('fpObs').value=f.obs||'';
+  if($('fpData'))$('fpData').value=f.data||today();
   openM('mFaceP');
 }
 
