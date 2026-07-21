@@ -6982,14 +6982,14 @@ function editLanc(id){
 function marcarPago(id){
   const a=getLancs();
   const l=a.find(x=>x.id===id);if(!l)return;
-  // Se lançamento vinculado a orçamento → abre modal de pagamento parcial do orçamento
-  if(l.orcId){
+  // Só abre modal de recebimento de orçamento se for RECEITA vinculada a orçamento
+  if(l.orcId&&l.tipo==='receita'){
     const pacs=getPacs();
     const pac=pacs.find(p=>p.id===l.pacId);
     if(pac){CPAC=pac;registrarPgtoOrc(l.orcId);return;}
   }
-  // Sem orçamento vinculado → marcar pago direto
-  l.status='pago';saveLancs(a);renderFin();renderDash();
+  // Despesas ou lançamentos sem orçamento → marcar pago direto
+  l.status='pago';saveLancs(a);syncLancToOrc(l);renderFin();renderDash();
 }
 // Sincroniza status de lançamento de volta ao orçamento do paciente
 function syncLancToOrc(lanc){
@@ -8140,41 +8140,64 @@ function renderTarefas(){
   const filtStatus=$('tfFiltStatus')?.value||'';
   if(filtResp)tarefas=tarefas.filter(t=>t.responsavel===filtResp);
   if(filtStatus)tarefas=tarefas.filter(t=>t.status===filtStatus);
-  tarefas.sort((a,b)=>{if(a.status!==b.status)return a.status==='pendente'?-1:1;return(a.data||'').localeCompare(b.data||'');});
   if(!tarefas.length){area.innerHTML='<div class="card"><div class="empty"><p>Nenhuma tarefa encontrada. Clique em "+ Nova Tarefa" para começar.</p></div></div>';return;}
-  // Agrupar por data
-  const grupos={};
-  tarefas.forEach(t=>{const k=t.data||'sem-data';if(!grupos[k])grupos[k]=[];grupos[k].push(t);});
+
   const hoje=today();
-  area.innerHTML=Object.entries(grupos).sort(([a],[b])=>a.localeCompare(b)).map(([data,ts])=>{
-    const isHoje=data===hoje;
-    const isAtrasada=data<hoje;
-    const labelData=data==='sem-data'?'Sem data definida':isHoje?'📅 Hoje — '+fmtD(data):(isAtrasada?'⚠️ Atrasadas — '+fmtD(data):fmtD(data));
-    const corHeader=isHoje?'var(--teal)':isAtrasada?'var(--danger)':'var(--text)';
-    return`<div class="card" style="margin-bottom:14px">
-      <div style="font-weight:700;font-size:13px;color:${corHeader};margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border)">${labelData}</div>
-      ${ts.map(t=>{
-        const concluida=t.status==='concluida';
-        const alta=t.prioridade==='alta';
-        return`<div style="display:flex;align-items:flex-start;gap:12px;padding:10px;border-radius:8px;margin-bottom:6px;background:var(--bg);border-left:4px solid ${concluida?'var(--success)':alta?'var(--danger)':'var(--teal)'}">
-          <input type="checkbox" ${concluida?'checked':''} onchange="concluirTarefa('${t.id}')" style="margin-top:3px;width:16px;height:16px;cursor:pointer;accent-color:var(--teal)">
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:13px;text-decoration:${concluida?'line-through':'none'};color:${concluida?'var(--muted)':'var(--text)'}">${t.titulo}${alta&&!concluida?` <span style="color:var(--danger);font-size:11px">🔴 Alta</span>`:''}
-            </div>
-            ${t.desc?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${t.desc}</div>`:''}
-            <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">
-              ${t.responsavel?`<span style="font-size:11px;color:var(--teal-d)">👤 ${t.responsavel}</span>`:''}
-              ${concluida&&t.concluidaEm?`<span style="font-size:11px;color:var(--success)">✅ Concluída em ${t.concluidaEm}</span>`:''}
-            </div>
-          </div>
-          ${isMaster()?`<div style="display:flex;gap:4px;flex-shrink:0">
-            <button class="btn btn-o btn-xs" onclick="editarTarefa('${t.id}')" title="Editar">✏️</button>
-            <button class="btn btn-d btn-xs" onclick="deletarTarefa('${t.id}')" title="Excluir">🗑</button>
-          </div>`:''}
-        </div>`;
-      }).join('')}
+  const pendentes=tarefas.filter(t=>t.status==='pendente');
+  const concluidas=tarefas.filter(t=>t.status==='concluida').sort((a,b)=>(b.concluidaEm||'').localeCompare(a.concluidaEm||''));
+
+  const _cardTarefa=(t,isConcluida)=>{
+    const alta=t.prioridade==='alta';
+    const isAtrasada=!isConcluida&&t.data&&t.data<hoje;
+    const cor=isConcluida?'var(--success)':isAtrasada?'var(--danger)':alta?'var(--warn)':'var(--teal)';
+    return`<div style="display:flex;align-items:flex-start;gap:12px;padding:10px;border-radius:8px;margin-bottom:6px;background:var(--bg);border-left:4px solid ${cor};opacity:${isConcluida?'.75':'1'}">
+      <input type="checkbox" ${isConcluida?'checked':''} onchange="concluirTarefa('${t.id}')" style="margin-top:3px;width:16px;height:16px;cursor:pointer;accent-color:var(--teal)">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px;text-decoration:${isConcluida?'line-through':'none'};color:${isConcluida?'var(--muted)':'var(--text)'}">${t.titulo}${alta&&!isConcluida?` <span style="color:var(--danger);font-size:11px">🔴 Alta</span>`:''}${isAtrasada?` <span class="badge b-red" style="font-size:9px">Atrasada</span>`:''}
+        </div>
+        ${t.desc?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${t.desc}</div>`:''}
+        <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">
+          ${t.responsavel?`<span style="font-size:11px;color:var(--teal-d)">👤 ${t.responsavel}</span>`:''}
+          ${t.data&&!isConcluida?`<span style="font-size:11px;color:${isAtrasada?'var(--danger)':'var(--muted)'}">📅 ${fmtD(t.data)}</span>`:''}
+          ${isConcluida&&t.concluidaEm?`<span style="font-size:11px;color:var(--success)">✅ Concluída em ${t.concluidaEm}</span>`:''}
+        </div>
+      </div>
+      ${isMaster()?`<div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="btn btn-o btn-xs" onclick="editarTarefa('${t.id}')" title="Editar">✏️</button>
+        <button class="btn btn-d btn-xs" onclick="deletarTarefa('${t.id}')" title="Excluir">🗑</button>
+      </div>`:''}
+    </div>`;
+  };
+
+  // ── Pendentes agrupadas por data ──
+  const grupos={};
+  pendentes.sort((a,b)=>(a.data||'zzz').localeCompare(b.data||'zzz')).forEach(t=>{
+    const k=t.data||'sem-data';if(!grupos[k])grupos[k]=[];grupos[k].push(t);
+  });
+  const htmlPendentes=Object.entries(grupos).map(([data,ts])=>{
+    const isHoje=data===hoje;const isAtrasada=data<hoje&&data!=='sem-data';
+    const label=data==='sem-data'?'Sem data definida':isHoje?'📅 Hoje — '+fmtD(data):(isAtrasada?'⚠️ Atrasadas — '+fmtD(data):'🗓 '+fmtD(data));
+    const cor=isHoje?'var(--teal)':isAtrasada?'var(--danger)':'var(--text)';
+    return`<div class="card" style="margin-bottom:12px">
+      <div style="font-weight:700;font-size:13px;color:${cor};margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--border)">${label}</div>
+      ${ts.map(t=>_cardTarefa(t,false)).join('')}
     </div>`;
   }).join('');
+
+  // ── Histórico de concluídas (colapsável) ──
+  const htmlConcluidas=concluidas.length?`
+    <div class="card" style="margin-top:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.tf-chevron').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'">
+        <div style="font-weight:700;font-size:13px;color:var(--success)">✅ Histórico — Tarefas Concluídas (${concluidas.length})</div>
+        <span class="tf-chevron" style="color:var(--muted);font-size:12px">▼</span>
+      </div>
+      <div style="margin-top:12px">
+        ${concluidas.map(t=>_cardTarefa(t,true)).join('')}
+        ${isMaster()&&concluidas.length?`<div style="margin-top:8px;text-align:right"><button class="btn btn-d btn-xs" onclick="if(confirm('Excluir todas as tarefas concluídas?')){saveTarefas(getTarefas().filter(x=>x.status!=='concluida'));renderTarefas();}">🗑 Limpar histórico</button></div>`:''}
+      </div>
+    </div>`:'';
+
+  area.innerHTML=(htmlPendentes||'<div class="card"><div class="empty"><p>Nenhuma tarefa pendente.</p></div></div>')+htmlConcluidas;
 }
 
 // ══ RETORNOS DE SESSÃO ══
