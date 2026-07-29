@@ -1334,7 +1334,7 @@ tr:hover td{background:var(--teal-p)}
   <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
     <button id="orcModoSimples" class="btn btn-p btn-sm" onclick="setOrcMode('simples')">📝 Valor Global</button>
     <button id="orcModoDetalhe" class="btn btn-o btn-sm" onclick="setOrcMode('detalhe')">🔍 Por Procedimentos</button>
-    <button class="btn btn-g btn-sm" onclick="openM('mImportPront')">📥 Importar do Prontuário</button>
+    <button class="btn btn-g btn-sm" onclick="IMPORT_TAB='odonto';document.querySelectorAll('#importTabs .stab').forEach((el,i)=>el.classList.toggle('on',i===0));openM('mImportPront');renderImportArea()">📥 Importar do Prontuário</button>
   </div>
   <div class="fr">
     <div class="ff"><label>Descrição / Título do Orçamento</label><input type="text" id="oDesc" placeholder="Ex: Tratamento completo, Harmonização Facial..."></div>
@@ -4822,26 +4822,54 @@ function renderImportArea(){
   if(!CPAC){area.innerHTML='<div class="empty"><p>Nenhum paciente selecionado no prontuário.</p></div>';return}
   if(IMPORT_TAB==='odonto'){
     const av=getCurrAvalOdonto?getCurrAvalOdonto():null;
+    // Usa registros como fonte primária (sempre tem procId completo)
+    // Agrupa por dente, priorizando entradas COM procId
+    const regs=av?[...(av.registros||[])]:[];
+    // Também incluir entradas do dentes map que não estejam em registros (legado)
     const od=av?av.dentes:CPAC.odontograma||{};
-    const registros=av?av.registros:[];
-    const entries=Object.entries(od).filter(([,v])=>Array.isArray(v)?v.length>0:v&&v.status!=='ok');
-    if(!entries.length){area.innerHTML='<div class="empty"><p>Nenhum procedimento registrado no odontograma da avaliação atual.</p></div>';return}
+    const porDente={};
+    // Primeiro: registros (fonte de verdade)
+    regs.forEach(r=>{
+      const d=String(r.dente);
+      if(!porDente[d])porDente[d]=[];
+      porDente[d].push(r);
+    });
+    // Segundo: entradas legadas do dentes map não presentes em registros
+    Object.entries(od).forEach(([dente,v])=>{
+      const arr=Array.isArray(v)?v:[v];
+      arr.forEach(p=>{
+        if(!p||p.status==='ok')return;
+        const d=String(dente);
+        if(!porDente[d])porDente[d]=[];
+        const jaExiste=porDente[d].some(x=>x.id&&x.id===p.id);
+        if(!jaExiste)porDente[d].push(p);
+      });
+    });
+    if(!Object.keys(porDente).length){area.innerHTML='<div class="empty"><p>Nenhum procedimento registrado no odontograma da avaliação atual.</p></div>';return}
+    const procOpts=getProcs().filter(x=>x.esp==='odonto'||x.esp==='ambos').sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
+      .map(x=>`<option value="${x.id}" data-val="${x.valor}">${x.nome} — ${fmt(x.valor)}</option>`).join('');
     area.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Selecione os procedimentos do odontograma que deseja incluir no orçamento:</div>
-    <div style="display:flex;flex-direction:column;gap:8px">${entries.map(([dente,procs])=>{
-      const arr=Array.isArray(procs)?procs:[procs];
-      return arr.map(p=>{
+    <div style="display:flex;flex-direction:column;gap:8px">${Object.entries(porDente).sort(([a],[b])=>Number(a)-Number(b)).map(([dente,arr])=>{
+      // Se há entradas COM proc, mostrar só essas; senão mostrar as sem proc com seletor
+      const comProc=arr.filter(p=>p.procId);
+      const mostrar=comProc.length?comProc:arr;
+      return mostrar.map(p=>{
         const iid=`imp_od_${dente}_${p.id||uid()}`;
-        const hasCadastrado=p.procId&&p.procNome;
-        const procName=hasCadastrado?p.procNome:(DLBLS?.[p.status]||p.status||'Procedimento');
-        const defPrice=hasCadastrado?p.procValor:(getProcs().find(x=>x.nome.toLowerCase().includes((procName||'').substring(0,6).toLowerCase()))?.valor||0);
+        const catalogProc=p.procId?getProcs().find(x=>x.id===p.procId):null;
+        const hasCadastrado=!!(catalogProc||p.procNome);
+        const procName=hasCadastrado?(catalogProc?.nome||p.procNome):(DLBLS?.[p.status]||p.status||'Procedimento');
+        const defPrice=catalogProc?.valor||p.procValor||0;
         const badge=hasCadastrado?`<span class="badge b-teal" style="font-size:9px">📋 Cadastrado</span>`:`<span class="badge b-warn" style="font-size:9px">⚠️ Sem proc.</span>`;
-        return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid ${hasCadastrado?'var(--teal)':'var(--border)'};border-radius:8px;background:#fff">
-          <input type="checkbox" id="${iid}" data-tipo="odonto" data-dente="${dente}" data-proc="${procName}" data-procid="${p.procId||''}" data-defprice="${defPrice}" style="flex-shrink:0" ${hasCadastrado?'checked':''}>
-          <div style="flex:1">
+        return`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px;border:1.5px solid ${hasCadastrado?'var(--teal)':'var(--border)'};border-radius:8px;background:#fff;flex-wrap:wrap">
+          <input type="checkbox" id="${iid}" data-tipo="odonto" data-dente="${dente}" data-proc="${procName}" data-procid="${p.procId||''}" data-defprice="${defPrice}" style="margin-top:14px;flex-shrink:0" ${hasCadastrado?'checked':''}>
+          <div style="flex:1;min-width:160px">
             <div style="font-weight:600;font-size:13px">Dente ${dente} — ${procName} ${badge}</div>
             ${p.obs?`<div style="font-size:11px;color:var(--muted)">${p.obs}</div>`:''}
+            ${!hasCadastrado?`<select id="${iid}_procsel" onchange="(function(s,iid){const opt=s.options[s.selectedIndex];const val=opt?.dataset?.val||0;document.getElementById(iid+'_val').value=val;const cb=document.getElementById(iid);cb.dataset.procid=s.value;cb.dataset.proc=(opt?.text||'').split(' — ')[0]||cb.dataset.proc;if(s.value)cb.checked=true;})(this,'${iid}')" style="margin-top:6px;width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px;font-size:11px;outline:none">
+              <option value="">— Vincular procedimento do catálogo —</option>${procOpts}
+            </select>`:''}
           </div>
-          <div style="display:flex;gap:6px;align-items:center">
+          <div style="display:flex;gap:6px;align-items:center;margin-top:10px">
             <label style="font-size:11px;color:var(--muted)">Qtd:</label>
             <input type="number" id="${iid}_qtd" value="1" min="1" style="width:50px;border:1.5px solid var(--border);border-radius:6px;padding:4px;font-size:12px;outline:none">
             <label style="font-size:11px;color:var(--muted)">R$:</label>
@@ -5547,7 +5575,7 @@ function delRegistroOdonto(id){
   av.registros=(av.registros||[]).filter(r=>r.id!==id);
   // Rebuild dentes map
   const dentes={};
-  (av.registros||[]).forEach(r=>{if(!dentes[r.dente])dentes[r.dente]=[];dentes[r.dente].push({status:r.status,obs:r.obs,data:r.data,id:r.id});});
+  (av.registros||[]).forEach(r=>{if(!dentes[r.dente])dentes[r.dente]=[];dentes[r.dente].push({status:r.status,obs:r.obs,data:r.data,id:r.id,procId:r.procId||'',procNome:r.procNome||'',procValor:r.procValor||0,procCusto:r.procCusto||0});});
   av.dentes=dentes;
   saveCPAC();renderOdonto();
 }
