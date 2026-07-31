@@ -4685,9 +4685,12 @@ function renderProc(){
   } else {
     // Pricing calculator
     const fin=ls('finConfig',{aluguel:0,salarios:0,materiais_fixos:0,outros_fixos:0,horas_mes:160,impostos:0,margem:30});
-    area.innerHTML=`<div class="g2" style="gap:16px">
+    const procs=getProcs().sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+    const procOpts=procs.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+    area.innerHTML=`
+    <div class="g2" style="gap:16px;margin-bottom:16px">
       <div class="card">
-        <div style="font-weight:700;font-size:14px;margin-bottom:16px;color:var(--teal-d)">📥 Meus Custos Mensais Fixos</div>
+        <div style="font-weight:700;font-size:14px;margin-bottom:16px;color:var(--teal-d)">📥 Custos Mensais Fixos</div>
         <div style="display:flex;flex-direction:column;gap:12px">
           ${priceField('pfAlug','Aluguel (R$/mês)',fin.aluguel)}
           ${priceField('pfSal','Salários e encargos (R$/mês)',fin.salarios)}
@@ -4696,14 +4699,44 @@ function renderProc(){
           ${priceField('pfImp','Imposto sobre receita (%)',fin.impostos,'%')}
           ${priceField('pfHrs','Horas trabalháveis por mês',fin.horas_mes,'h')}
           ${priceField('pfMarg','Margem de lucro desejada (%)',fin.margem,'%')}
-          <button class="btn btn-p" onclick="calcPrecif()">📊 Calcular Precificação</button>
+          <button class="btn btn-p" onclick="calcPrecif()" style="margin-top:4px">📊 Calcular Precificação</button>
         </div>
       </div>
-      <div class="card" id="precifResult">
+      <div class="card" id="precifResult" style="overflow-y:auto;max-height:520px">
         <div style="font-weight:700;font-size:14px;margin-bottom:16px;color:var(--teal-d)">📊 Resultado da Precificação</div>
-        <div class="empty"><p>Preencha os custos ao lado e clique em "Calcular"</p></div>
+        ${_precifCache?_precifCache:'<div class="empty"><p>Preencha os custos ao lado e clique em "Calcular"</p></div>'}
       </div>
+    </div>
+    <div class="g2" style="gap:16px">
+      <div class="card">
+        <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">🔬 Simulador Individual de Preço</div>
+        ${procs.length===0?'<div class="empty"><p>Cadastre procedimentos para usar o simulador.</p></div>':`
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <label style="font-size:12px;color:var(--muted);font-weight:600">Procedimento</label>
+            <select id="simProc" onchange="simularPreco()" style="border:1.5px solid var(--border);border-radius:6px;padding:8px;font-size:13px;outline:none">
+              <option value="">— Selecione —</option>${procOpts}
+            </select>
+          </div>
+          ${priceField('simDur','Duração estimada (min)',60,'min')}
+          ${priceField('simCusto','Custo de material (R$)',0)}
+          ${priceField('simImp','Imposto sobre receita (%)',fin.impostos,'%')}
+          ${priceField('simMarg','Margem desejada (%)',fin.margem,'%')}
+          <button class="btn btn-o" onclick="simularPreco()">🔬 Simular</button>
+        </div>`}
+      </div>
+      <div class="card" id="simResult">
+        <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">📈 Resultado da Simulação</div>
+        <div class="empty"><p>Selecione um procedimento ao lado para simular o preço ideal.</p></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px" id="peCard">
+      <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">⚖️ Ponto de Equilíbrio do Consultório</div>
+      ${_precifPE?_precifPE:'<div class="empty"><p>Calcule a precificação acima para ver o ponto de equilíbrio.</p></div>'}
     </div>`;
+    // Restore simulator state
+    if(_simCache){const s=$('simResult');if(s)s.innerHTML=_simCache;}
+    if(_simProcId&&$('simProc')){$('simProc').value=_simProcId;if($('simDur'))$('simDur').value=_simDur||60;if($('simCusto'))$('simCusto').value=_simCustoMat||0;}
   }
 }
 function priceField(id,label,val,unit=''){
@@ -4729,60 +4762,243 @@ function _syncPrecifToRecorrentes({aluguel,salarios,materiais_fixos,outros_fixos
       const entry={id:idx>=0?rec[idx].id:uid(),chave,desc,tipo:'despesa',valor,categoria:'Custo Fixo',freq:'mensal',dia:1,ativo:true,obs:'Sincronizado da Precificação'};
       if(idx>=0)rec[idx]=entry;else rec.push(entry);
     } else if(idx>=0){
-      rec.splice(idx,1); // remove se zerado
+      rec.splice(idx,1);
     }
   });
   ss('recorrentes',rec);
 }
-function calcPrecif(){
-  const alug=parseFloat($('pfAlug').value)||0;
-  // Auto-fill salários from equipe (custo real = salário + encargos) if field is empty
-  const eqFolha=calcFolhaMes(); // already includes encargos
+
+let _precifCache=null,_precifPE=null,_simCache=null,_simProcId=null,_simDur=60,_simCustoMat=0;
+
+function _calcPrecifData(){
+  const alug=parseFloat($('pfAlug')?.value)||0;
+  const eqFolha=calcFolhaMes();
   const salInput=$('pfSal');
-  if(salInput&&eqFolha>0){salInput.value=eqFolha.toFixed(2);salInput.title='Preenchido automaticamente pela equipe ativa (salário + encargos)';}
-  const sal=parseFloat($('pfSal').value)||eqFolha;
-  const mat=parseFloat($('pfMat').value)||0;const out=parseFloat($('pfOut').value)||0;
-  const imp=parseFloat($('pfImp').value)||0;const hrs=parseFloat($('pfHrs').value)||160;
-  const marg=parseFloat($('pfMarg').value)||30;
+  if(salInput&&eqFolha>0){salInput.value=eqFolha.toFixed(2);}
+  const sal=parseFloat($('pfSal')?.value)||eqFolha;
+  const mat=parseFloat($('pfMat')?.value)||0;
+  const out=parseFloat($('pfOut')?.value)||0;
+  const imp=parseFloat($('pfImp')?.value)||0;
+  const hrs=parseFloat($('pfHrs')?.value)||160;
+  const marg=parseFloat($('pfMarg')?.value)||30;
+  return{alug,sal,mat,out,imp,hrs,marg};
+}
+
+function calcPrecif(){
+  const{alug,sal,mat,out,imp,hrs,marg}=_calcPrecifData();
   ss('finConfig',{aluguel:alug,salarios:sal,materiais_fixos:mat,outros_fixos:out,impostos:imp,horas_mes:hrs,margem:marg});
-  // Sincroniza com Recorrentes automaticamente
   _syncPrecifToRecorrentes({aluguel:alug,salarios:sal,materiais_fixos:mat,outros_fixos:out});
   const totalFixo=alug+sal+mat+out;
   const custoHora=hrs>0?totalFixo/hrs:0;
-  const procs=getProcs();
-  const result=$('precifResult');if(!result)return;
-  result.innerHTML=`<div style="font-weight:700;font-size:14px;margin-bottom:16px;color:var(--teal-d)">📊 Resultado</div>
+  const procs=getProcs().sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+
+  // ── Resultado por procedimento ──
+  const linhas=procs.map(p=>{
+    const dur=(p.dur||60)/60;
+    const custoTempo=custoHora*dur;
+    const custoTotal=custoTempo+(p.custo||0);
+    const precoSug=(custoTotal*(1+imp/100))/(1-marg/100);
+    const margemReal=p.valor?Math.round((p.valor-custoTotal)/p.valor*100):null;
+    const ok=margemReal!==null&&margemReal>=marg;
+    return`<div style="background:var(--bg);border-radius:8px;padding:10px 14px;border-left:3px solid ${margemReal===null?'var(--border)':ok?'var(--teal)':'var(--danger)'}">
+      <div style="font-weight:600;font-size:13px;margin-bottom:5px">${p.nome}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:12px">
+        <div><span style="color:var(--muted)">Custo total</span><br><strong>${fmt(custoTotal)}</strong></div>
+        <div><span style="color:var(--muted)">Preço sugerido</span><br><strong style="color:var(--teal);font-size:14px">${fmt(precoSug)}</strong></div>
+        <div><span style="color:var(--muted)">Seu preço atual</span><br><strong>${p.valor?fmt(p.valor):'—'}</strong>${margemReal!==null?`<span class="badge ${ok?'b-green':'b-red'}" style="margin-left:4px">${margemReal}%</span>`:''}</div>
+      </div>
+    </div>`;
+  }).join('')||'<div style="color:var(--muted);font-size:13px">Cadastre procedimentos para ver a precificação.</div>';
+
+  _precifCache=`
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;padding:8px;background:var(--bg);border-radius:6px">
+      <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:6px">
         <span style="font-size:13px">Total custos fixos/mês</span>
         <span style="font-weight:700;color:var(--danger)">${fmt(totalFixo)}</span>
       </div>
-      <div style="display:flex;justify-content:space-between;padding:8px;background:var(--bg);border-radius:6px">
+      <div style="display:flex;justify-content:space-between;padding:8px 12px;background:var(--bg);border-radius:6px">
         <span style="font-size:13px">Custo por hora trabalhada</span>
         <span style="font-weight:700;color:var(--warn)">${fmt(custoHora)}</span>
       </div>
     </div>
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Preço sugerido por procedimento</div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      ${procs.slice(0,10).map(p=>{
-        const dur=(p.dur||60)/60;
-        const custoTempo=custoHora*dur;
-        const custoTotal=custoTempo+(p.custo||0);
-        const impostoVal=custoTotal*(imp/100);
-        const precoBase=custoTotal+impostoVal;
-        const precoSug=precoBase/(1-marg/100);
-        const margemReal=p.valor?Math.round((p.valor-custoTotal)/p.valor*100):null;
-        return`<div style="background:var(--bg);border-radius:6px;padding:8px 12px">
-          <div style="font-weight:600;font-size:12px;margin-bottom:3px">${p.nome}</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)">
-            <span>Custo: ${fmt(custoTotal)}</span>
-            <span>Sugerido: <strong style="color:var(--teal)">${fmt(precoSug)}</strong></span>
-            <span>Seu preço: ${fmt(p.valor)}</span>
-            ${margemReal!==null?`<span class="badge ${margemReal>=marg?'b-green':'b-red'}">${margemReal}% margem</span>`:''}
-          </div>
-        </div>`;
-      }).join('')||'<div style="color:var(--muted);font-size:13px">Cadastre procedimentos para ver a precificação.</div>'}
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Preço sugerido por procedimento</div>
+    <div style="display:flex;flex-direction:column;gap:8px">${linhas}</div>`;
+
+  // ── Ponto de Equilíbrio (baseado em faturamento) ──
+  // MC% média: média de (preço - custo_variável) / preço de todos os procedimentos
+  // PE Receita = Custos Fixos / MC%
+  let mcPct=marg/100; // fallback: usa a margem desejada como MC%
+  if(procs.length>0){
+    const mcs=procs.map(p=>{
+      const dur=(p.dur||60)/60;
+      const custoVar=(p.custo||0); // custo de material (variável por sessão)
+      const receita=p.valor||((custoVar+custoHora*dur)*(1+imp/100)/(1-marg/100));
+      return receita>0?(receita-custoVar)/receita:marg/100;
+    });
+    mcPct=mcs.reduce((a,b)=>a+b,0)/mcs.length;
+  }
+  const peReceita=mcPct>0?totalFixo/mcPct:null;
+  const lucroAtualFat=ls('lancamentos',[]).filter(l=>l.tipo==='receita'&&l.status==='pago'&&(l.data||'').startsWith(today().slice(0,7))).reduce((a,l)=>a+(l.valor||0),0);
+  const pctAtingido=peReceita?Math.min(Math.round(lucroAtualFat/peReceita*100),100):0;
+
+  _precifPE=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="background:var(--bg);border-radius:10px;padding:16px;text-align:center;border-top:3px solid var(--danger)">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:6px">Custos fixos/mês</div>
+        <div style="font-size:26px;font-weight:800;color:var(--danger)">${fmt(totalFixo)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">a pagar todo mês</div>
+      </div>
+      <div style="background:var(--bg);border-radius:10px;padding:16px;text-align:center;border-top:3px solid var(--teal)">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:6px">Ponto de equilíbrio</div>
+        <div style="font-size:26px;font-weight:800;color:var(--teal)">${peReceita?fmt(peReceita):'—'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">faturamento mínimo/mês</div>
+      </div>
+      <div style="background:var(--bg);border-radius:10px;padding:16px;text-align:center;border-top:3px solid var(--warn)">
+        <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:6px">Margem de contribuição</div>
+        <div style="font-size:26px;font-weight:800;color:var(--warn)">${Math.round(mcPct*100)}%</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">de cada R$ faturado sobra</div>
+      </div>
+    </div>
+    ${peReceita?`
+    <div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:20px">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px">📅 Progresso deste mês</div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+        <span>Faturado: <strong>${fmt(lucroAtualFat)}</strong></span>
+        <span>Meta PE: <strong>${fmt(peReceita)}</strong></span>
+      </div>
+      <div style="background:var(--border);border-radius:99px;height:10px;overflow:hidden">
+        <div style="background:${pctAtingido>=100?'var(--teal)':pctAtingido>=70?'var(--warn)':'var(--danger)'};width:${pctAtingido}%;height:100%;border-radius:99px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">${pctAtingido}% do ponto de equilíbrio atingido${pctAtingido>=100?' ✅ Você está no lucro!':` · Faltam ${fmt(peReceita-lucroAtualFat)}`}</div>
+    </div>`:''
+    }
+    <div style="font-size:12px;font-weight:700;color:var(--teal-d);text-transform:uppercase;margin-bottom:12px">🎯 Simulador de Meta de Faturamento</div>
+    <div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Quanto você quer lucrar líquido por mês?</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:13px;font-weight:600">R$</span>
+          <input type="number" id="peLucroAlvo" value="5000" min="0" step="500"
+            style="width:130px;border:1.5px solid var(--teal);border-radius:6px;padding:7px 10px;font-size:14px;font-weight:600;outline:none;text-align:right"
+            oninput="calcMetaPE()">
+        </div>
+        <span style="font-size:13px;color:var(--muted)">de lucro líquido/mês</span>
+      </div>
+    </div>
+    <div id="peMetaResult"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:14px">
+      * Ponto de equilíbrio = Custos Fixos ÷ Margem de Contribuição Média.<br>
+      * Margem de contribuição = (Preço − Custo Variável de Material) ÷ Preço, média dos seus procedimentos.<br>
+      * Meta = (Custos Fixos + Lucro Desejado) ÷ Margem de Contribuição.
     </div>`;
+
+  setTimeout(()=>calcMetaPE(),50);
+
+  const result=$('precifResult');
+  if(result)result.innerHTML=`<div style="font-weight:700;font-size:14px;margin-bottom:16px;color:var(--teal-d)">📊 Resultado da Precificação</div>`+_precifCache;
+  const pe=$('peCard');
+  if(pe)pe.innerHTML=`<div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">⚖️ Ponto de Equilíbrio do Consultório</div>`+_precifPE;
+}
+
+function simularPreco(){
+  const procId=$('simProc')?.value;
+  const dur=parseFloat($('simDur')?.value)||60;
+  const custoMat=parseFloat($('simCusto')?.value)||0;
+  const imp=parseFloat($('simImp')?.value)||0;
+  const marg=parseFloat($('simMarg')?.value)||30;
+  const result=$('simResult');if(!result)return;
+
+  const fin=ls('finConfig',{aluguel:0,salarios:0,materiais_fixos:0,outros_fixos:0,horas_mes:160});
+  const totalFixo=(fin.aluguel||0)+(fin.salarios||0)+(fin.materiais_fixos||0)+(fin.outros_fixos||0);
+  const hrs=fin.horas_mes||160;
+  const custoHora=hrs>0?totalFixo/hrs:0;
+  const custoTempo=custoHora*(dur/60);
+  const custoTotal=custoTempo+custoMat;
+  const precoSug=(custoTotal*(1+imp/100))/(1-marg/100);
+
+  _simProcId=procId;_simDur=dur;_simCustoMat=custoMat;
+
+  const proc=procId?getProcs().find(p=>p.id===procId):null;
+  const precoAtual=proc?.valor||0;
+  const margemAtual=precoAtual?Math.round((precoAtual-custoTotal)/precoAtual*100):null;
+
+  // Cenários de preço
+  const cens=[0.7,0.85,1,1.15,1.3].map(f=>{
+    const preco=precoSug*f;
+    const m=Math.round((preco-custoTotal)/preco*100);
+    const destaque=f===1;
+    return`<div style="background:${destaque?'var(--teal)':'var(--bg)'};color:${destaque?'#fff':'inherit'};border-radius:8px;padding:10px 14px;text-align:center;${destaque?'':'border:1.5px solid var(--border)'}">
+      <div style="font-size:11px;opacity:.8;margin-bottom:2px">${destaque?'⭐ Sugerido':f<1?'Agressivo':'Premium'}</div>
+      <div style="font-size:20px;font-weight:800">${fmt(preco)}</div>
+      <div style="font-size:12px;opacity:.8;margin-top:2px">${m}% margem</div>
+    </div>`;
+  }).join('');
+
+  _simCache=`
+    <div style="font-weight:600;font-size:13px;margin-bottom:12px;color:var(--teal-d)">${proc?proc.nome:'Simulação personalizada'}</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px;font-size:13px">
+      <div style="display:flex;justify-content:space-between;padding:7px 10px;background:var(--bg);border-radius:6px">
+        <span style="color:var(--muted)">Custo de tempo (${dur}min)</span><strong>${fmt(custoTempo)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:7px 10px;background:var(--bg);border-radius:6px">
+        <span style="color:var(--muted)">Custo de material</span><strong>${fmt(custoMat)}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:7px 10px;background:var(--bg);border-radius:6px">
+        <span style="color:var(--muted)">Custo total</span><strong style="color:var(--danger)">${fmt(custoTotal)}</strong>
+      </div>
+      ${precoAtual?`<div style="display:flex;justify-content:space-between;padding:7px 10px;background:var(--bg);border-radius:6px">
+        <span style="color:var(--muted)">Preço atual cadastrado</span>
+        <strong>${fmt(precoAtual)} <span class="badge ${margemAtual>=marg?'b-green':'b-red'}">${margemAtual}% margem</span></strong>
+      </div>`:''}
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Cenários de preço</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">${cens}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">Custo hora: ${fmt(custoHora)}/h · Margem desejada: ${marg}% · Imposto: ${imp}%</div>`;
+
+  result.innerHTML=`<div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">📈 Resultado da Simulação</div>`+_simCache;
+}
+
+function calcMetaPE(){
+  const lucroAlvo=parseFloat($('peLucroAlvo')?.value)||0;
+  const result=$('peMetaResult');if(!result)return;
+  const fin=ls('finConfig',{aluguel:0,salarios:0,materiais_fixos:0,outros_fixos:0,horas_mes:160,margem:30});
+  const totalFixo=(fin.aluguel||0)+(fin.salarios||0)+(fin.materiais_fixos||0)+(fin.outros_fixos||0);
+  const hrs=fin.horas_mes||160;
+  const custoHora=hrs>0?totalFixo/hrs:0;
+  const marg=(fin.margem||30)/100;
+  const procs=getProcs();
+  let mcPct=marg;
+  if(procs.length>0){
+    const mcs=procs.map(p=>{
+      const dur=(p.dur||60)/60;
+      const custoVar=p.custo||0;
+      const receita=p.valor||((custoVar+custoHora*dur)/(1-marg));
+      return receita>0?(receita-custoVar)/receita:marg;
+    });
+    mcPct=mcs.reduce((a,b)=>a+b,0)/mcs.length;
+  }
+  if(totalFixo===0){result.innerHTML='<div class="empty"><p>Preencha os custos fixos e calcule a precificação primeiro.</p></div>';return;}
+  const peFat=mcPct>0?totalFixo/mcPct:null;
+  const metaFat=mcPct>0?(totalFixo+lucroAlvo)/mcPct:null;
+
+  // Cenários de lucro
+  const cens=[0,2000,5000,10000,15000,20000].map(lv=>{
+    const fat=mcPct>0?(totalFixo+lv)/mcPct:null;
+    const ativo=lv===lucroAlvo;
+    return`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-radius:8px;background:${ativo?'var(--teal)':'var(--bg)'};color:${ativo?'#fff':'inherit'}">
+      <span style="font-size:13px">Lucrar <strong>${fmt(lv)}</strong>/mês</span>
+      <span style="font-size:14px;font-weight:700">${fat?fmt(fat):'—'}</span>
+    </div>`;
+  });
+
+  result.innerHTML=`
+    <div style="background:var(--teal);color:#fff;border-radius:12px;padding:20px;text-align:center;margin-bottom:16px">
+      <div style="font-size:12px;opacity:.85;font-weight:600;text-transform:uppercase;margin-bottom:6px">Para lucrar ${fmt(lucroAlvo)}/mês você precisa faturar</div>
+      <div style="font-size:36px;font-weight:900;letter-spacing:-1px">${metaFat?fmt(metaFat):'—'}</div>
+      <div style="font-size:12px;opacity:.8;margin-top:6px">= ${fmt(totalFixo)} custos + ${fmt(lucroAlvo)} lucro ÷ ${Math.round(mcPct*100)}% MC</div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Tabela de metas rápidas</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${cens.join('')}</div>`;
 }
 
 // ── ORC SAVE MODES ──
