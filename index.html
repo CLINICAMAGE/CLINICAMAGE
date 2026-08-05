@@ -4195,18 +4195,49 @@ function renderSessoes(){
 function registrarSessao(id){
   const s=(CPAC?.pacotesSessoes||[]).find(x=>x.id===id);if(!s)return;
   if(s.realizadas>=s.total)return alert('Todas as sessões já foram realizadas!');
-  const obs=prompt(`Sessão ${s.realizadas+1}/${s.total} — Observações (opcional):`)||'';
-  s.realizadas++;if(!s.historico)s.historico=[];
-  s.historico.push({data:today(),obs});
-  // Suggest next session
-  if(s.realizadas<s.total&&s.intervalo){
-    const prox=new Date();prox.setDate(prox.getDate()+s.intervalo);
-    s.proxima=prox.toISOString().split('T')[0];
-    alert(`✅ Sessão registrada! Próxima sessão sugerida: ${prox.toLocaleDateString('pt-BR')}`);
-  } else if(s.realizadas>=s.total){
-    s.proxima='';alert('✅ Última sessão registrada! Pacote concluído.');
+  // Modal inline de registro
+  const mid='mRegSessao';let m=$(mid);
+  if(!m){
+    m=document.createElement('div');m.id=mid;m.className='mo';
+    m.innerHTML=`<div class="mb" style="width:420px">
+      <div class="mh"><h3>✅ Registrar Sessão</h3><button class="mc" onclick="closeM('${mid}')">×</button></div>
+      <div style="padding:0 8px 8px;display:flex;flex-direction:column;gap:12px">
+        <div id="mRegSessaoInfo" style="font-size:13px;color:var(--muted)"></div>
+        <div class="ff"><label>Data da sessão</label><input type="date" id="mRegSessaoData"></div>
+        <div class="ff"><label>Observações (opcional)</label><input type="text" id="mRegSessaoObs" placeholder="Ex: paciente relatou melhora"></div>
+      </div>
+      <div class="mf">
+        <button class="btn btn-o" onclick="closeM('${mid}')">Cancelar</button>
+        <button class="btn btn-p" onclick="_confirmarSessao()">✅ Confirmar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
   }
-  saveCPAC();renderSessoes();
+  m.dataset.sessId=id;
+  $('mRegSessaoInfo').textContent=`${s.proc} — Sessão ${s.realizadas+1} de ${s.total}`;
+  $('mRegSessaoData').value=today();
+  $('mRegSessaoObs').value='';
+  openM(mid);
+}
+function _confirmarSessao(){
+  const mid='mRegSessao';const m=$(mid);if(!m)return;
+  const id=m.dataset.sessId;
+  const s=(CPAC?.pacotesSessoes||[]).find(x=>x.id===id);if(!s)return;
+  const data=$('mRegSessaoData').value||today();
+  const obs=$('mRegSessaoObs').value||'';
+  s.realizadas++;
+  if(!s.historico)s.historico=[];
+  s.historico.push({data,obs});
+  if(s.realizadas<s.total&&s.intervalo){
+    const prox=new Date(data+'T12:00:00');
+    prox.setDate(prox.getDate()+s.intervalo);
+    s.proxima=prox.toISOString().split('T')[0];
+  } else if(s.realizadas>=s.total){
+    s.proxima='';
+  }
+  saveCPAC();closeM(mid);renderSessoes();
+  if(s.realizadas>=s.total)alert('✅ Última sessão registrada! Pacote concluído.');
+  else alert(`✅ Sessão registrada! Próxima sugerida: ${fmtD(s.proxima)}`);
 }
 function salvarSessao(){
   if(!CPAC)return;
@@ -5601,7 +5632,7 @@ function openPron(id){
   renderTermoPacSel();
 }
 function closePron(){CPAC=null;$('pacListWrap').style.display='';$('pronDetail').style.display='none';renderPacList()}
-function abrirProntuario(pacId,aba){showPage('pacientes');setTimeout(()=>{openPron(pacId);if(aba)setTimeout(()=>pronTab(aba),80);},80);}
+function abrirProntuario(pacId,aba){go('prontuario');setTimeout(()=>{openPron(pacId);if(aba)setTimeout(()=>pronTab(aba),80);},80);}
 function delPacAtual(){
   if(!CPAC)return;
   if(!confirm('Excluir o paciente "'+CPAC.nome+'" e TODOS os seus dados? Esta ação não pode ser desfeita.'))return;
