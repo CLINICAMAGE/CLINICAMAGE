@@ -5151,19 +5151,16 @@ function renderImportArea(){
     }).join('')}</div>`;
   } else {
     const avals=getFaceAvals?getFaceAvals():[];
-    // Usa avaliação selecionada no modal de importação, ou a que está ativa no diagrama
-    let avalImport;
-    if($('impFaceAvalSel')?.value!==undefined&&$('impFaceAvalSel')?.value!==''){
-      const idx=parseInt($('impFaceAvalSel').value)||0;
-      avalImport=avals[Math.min(idx,avals.length-1)];
-    } else {
-      avalImport=getCurrAvalFace?getCurrAvalFace():null;
-    }
+    // Ordenar por data desc para que a mais recente seja a default
+    const avalsOrd=[...avals].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+    // Usar ID salvo ou default para a mais recente
+    const selId=$('impFaceAvalSel')?.value;
+    const avalImport=selId?avalsOrd.find(a=>a.id===selId)||avalsOrd[0]:avalsOrd[0];
     const fp=avalImport?avalImport.points||[]:(CPAC.facePoints||[]);
-    const avalSel=avals.length>1?`<div style="margin-bottom:14px">
+    const avalSel=avalsOrd.length>1?`<div style="margin-bottom:14px">
       <label style="font-size:12px;font-weight:600;color:var(--teal-d);display:block;margin-bottom:6px">📋 Avaliação a importar:</label>
       <select id="impFaceAvalSel" onchange="renderImportArea()" style="width:100%;border:1.5px solid var(--teal);border-radius:8px;padding:8px;font-size:13px;font-weight:600;color:var(--teal-d);outline:none">
-        ${[...avals.map((av,i)=>({av,i}))].sort((a,b)=>b.av.data?.localeCompare(a.av.data||'')||0).map(({av,i})=>`<option value="${i}" ${i===importAvalIdx?'selected':''}>${av.label} — ${fmtD(av.data)} (${(av.points||[]).length} aplic.)</option>`).join('')}
+        ${avalsOrd.map(av=>`<option value="${av.id}" ${av.id===avalImport?.id?'selected':''}>${av.label} — ${fmtD(av.data)} (${(av.points||[]).length} aplic.)</option>`).join('')}
       </select>
     </div>`:'';
     if(!fp.length){area.innerHTML=avalSel+'<div class="empty"><p>Nenhuma aplicação registrada nesta avaliação.</p></div>';return}
@@ -9555,13 +9552,13 @@ function renderDash(){
   // Sessões em aberto/atrasadas no dashboard
   const ds=$('dashSessoes');
   if(ds){
-    const lim15=new Date();lim15.setDate(lim15.getDate()+15);
-    const lim15s=lim15.toISOString().split('T')[0];
+    const lim30=new Date();lim30.setDate(lim30.getDate()+30);
+    const lim15s=lim30.toISOString().split('T')[0];
     const alertasSess=[];
     getPacs().forEach(pac=>{
       (pac.pacotesSessoes||[]).forEach(s=>{
         if(s.realizadas>=s.total)return; // concluído
-        if(!s.proxima||s.proxima>lim15s)return; // além de 15 dias
+        if(!s.proxima||s.proxima>lim15s)return; // além de 30 dias
         alertasSess.push({pac,s});
       });
     });
