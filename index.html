@@ -3228,18 +3228,27 @@ function getTaxaCartao(pgto,parcs){
 function aplicarTaxaCartao(lancId){
   const l=getLancs().find(x=>x.id===lancId);if(!l)return;
   if(!l.pgto?.includes('Cartão'))return;
+  // Se o orçamento vinculado repassou a taxa ao paciente, a clínica não tem despesa
+  if(l.orcId){
+    const pacs=getPacs();
+    for(const pac of pacs){
+      const orc=pac.orcamentos?.find(o=>o.id===l.orcId);
+      if(orc){if((orc.taxaOpt||'repassar')==='repassar')return;break;}
+    }
+  }
   const taxa=getTaxaCartao(l.pgto,l.parcs||1);
   if(!taxa)return;
   const taxaVal=l.valor*(taxa/100);
   if(taxaVal<0.01)return;
   const lancs=getLancs();
-  const jaTemTaxa=lancs.some(x=>x.taxaRef===lancId);
+  // Evitar duplicidade: já tem despesa vinculada a este lançamento ou ao orcId
+  const jaTemTaxa=lancs.some(x=>x.taxaRef===lancId||(l.orcId&&x.taxaRef===l.orcId&&x.categoria==='Taxas de Cartão'));
   if(jaTemTaxa)return;
   lancs.push({id:uid(),tipo:'despesa',data:l.data||today(),
     desc:`Taxa ${l.pgto} (${taxa}%) — ${l.desc}`,
     paciente:l.paciente||'',categoria:'Taxas de Cartão',
     valor:taxaVal,status:'pago',pgto:'Automático',taxaRef:lancId,
-    obs:`Taxa aplicada automaticamente sobre ${fmt(l.valor)}`});
+    obs:`Taxa assumida pela clínica sobre ${fmt(l.valor)}`});
   saveLancs(lancs);
 }
 
@@ -5037,7 +5046,21 @@ function renderImportArea(){
   const area=$('importArea');if(!area)return;
   if(!CPAC){area.innerHTML='<div class="empty"><p>Nenhum paciente selecionado no prontuário.</p></div>';return}
   if(IMPORT_TAB==='odonto'){
-    const av=getCurrAvalOdonto?getCurrAvalOdonto():null;
+    const odontoAvals=getOdontoAvals?getOdontoAvals():[];
+    // Selector de avaliação (igual ao diagrama facial)
+    let av;
+    if($('impOdontoAvalSel')?.value!==undefined&&$('impOdontoAvalSel')?.value!==''){
+      const idx=parseInt($('impOdontoAvalSel').value)||0;
+      av=odontoAvals[Math.min(idx,odontoAvals.length-1)];
+    } else {
+      av=getCurrAvalOdonto?getCurrAvalOdonto():null;
+    }
+    const odontoAvalSel=odontoAvals.length>1?`<div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:600;color:var(--teal-d);display:block;margin-bottom:6px">📋 Avaliação a importar:</label>
+      <select id="impOdontoAvalSel" onchange="renderImportArea()" style="width:100%;border:1.5px solid var(--teal);border-radius:8px;padding:8px;font-size:13px;font-weight:600;color:var(--teal-d);outline:none">
+        ${[...odontoAvals.map((a,i)=>({a,i}))].sort((x,y)=>(y.a.data||'').localeCompare(x.a.data||'')).map(({a,i})=>`<option value="${i}" ${a.id===(av?.id)&&av?'selected':''}>${a.label||'Avaliação'} — ${fmtD(a.data)} (${Object.keys(a.dentes||{}).length} dentes)</option>`).join('')}
+      </select>
+    </div>`:'';
     // Usa registros como fonte primária (sempre tem procId completo)
     // Agrupa por dente, priorizando entradas COM procId
     const regs=av?[...(av.registros||[])]:[];
@@ -5061,10 +5084,10 @@ function renderImportArea(){
         if(!jaExiste)porDente[d].push(p);
       });
     });
-    if(!Object.keys(porDente).length){area.innerHTML='<div class="empty"><p>Nenhum procedimento registrado no odontograma da avaliação atual.</p></div>';return}
+    if(!Object.keys(porDente).length){area.innerHTML=odontoAvalSel+'<div class="empty"><p>Nenhum procedimento registrado no odontograma desta avaliação.</p></div>';return}
     const procOpts=getProcs().filter(x=>x.esp==='odonto'||x.esp==='ambos').sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))
       .map(x=>`<option value="${x.id}" data-val="${x.valor}">${x.nome} — ${fmt(x.valor)}</option>`).join('');
-    area.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Selecione os procedimentos do odontograma que deseja incluir no orçamento:</div>
+    area.innerHTML=odontoAvalSel+`<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Selecione os procedimentos do odontograma que deseja incluir no orçamento:</div>
     <div style="display:flex;flex-direction:column;gap:8px">${Object.entries(porDente).sort(([a],[b])=>Number(a)-Number(b)).map(([dente,arr])=>{
       // Se há entradas COM proc, mostrar só essas; senão mostrar as sem proc com seletor
       const comProc=arr.filter(p=>p.procId);
@@ -6701,13 +6724,22 @@ function delOrc(id){
 }
 function registrarPgtoOrc(id){
   const o=CPAC?.orcamentos?.find(x=>x.id===id);if(!o)return;
+  // O que a clínica vai receber: liquidoClinica (já desconta taxa se assumiu)
+  // Para 'repassar': liquidoClinica = totalBase (taxa foi paga pelo paciente por fora)
+  // Para 'assumir':  liquidoClinica = totalBase - taxaValor
+  const aReceber=o.liquidoClinica||o.total||0;
   const totalCobrado=o.totalCobrado||o.total||0;
+  const taxaOpt=o.taxaOpt||'repassar';
+  const taxa=o.taxa||0;
+  const taxaValor=o.taxaValor||0;
   const pago=o.entrada||0;
-  const pendente=Math.max(0,totalCobrado-pago);
+  const pendente=Math.max(0,aReceber-pago);
   const info=$('mPgtoOrcInfo');
   if(info)info.innerHTML=`<strong>${o.desc}</strong><br>
-    Total: <strong>${fmt(totalCobrado)}</strong> &nbsp;|&nbsp;
-    Já pago: <strong style="color:var(--success)">${fmt(pago)}</strong> &nbsp;|&nbsp;
+    ${taxa>0?`Paciente cobrado: <strong>${fmt(totalCobrado)}</strong> &nbsp;|&nbsp;
+    Taxa ${taxa}% (${fmt(taxaValor)}): <strong style="color:${taxaOpt==='repassar'?'var(--teal)':'var(--danger)'}">${taxaOpt==='repassar'?'paga pelo paciente':'absorvida pela clínica'}</strong><br>`:''}
+    A receber (clínica): <strong style="color:var(--teal)">${fmt(aReceber)}</strong> &nbsp;|&nbsp;
+    Já confirmado: <strong style="color:var(--success)">${fmt(pago)}</strong> &nbsp;|&nbsp;
     Pendente: <strong style="color:var(--danger)">${fmt(pendente)}</strong>`;
   const inp=$('mPgtoValor');if(inp)inp.value=pendente.toFixed(2);
   $('mPgtoOrc').dataset.orcId=id;
@@ -6719,11 +6751,12 @@ function salvarPgtoOrc(){
   const valor=parseFloat($('mPgtoValor').value)||0;
   if(valor<=0)return alert('Informe um valor válido.');
   const pgto=$('mPgtoPgto').value;
-  const totalCobrado=o.totalCobrado||o.total||0;
-  const novoPago=Math.min((o.entrada||0)+valor,totalCobrado);
+  // Usa liquidoClinica como teto: o que a clínica realmente recebe
+  const aReceber=o.liquidoClinica||o.total||0;
+  const novoPago=Math.min((o.entrada||0)+valor,aReceber);
   o.entrada=novoPago;
   o.pgto=pgto;
-  o.status=novoPago>=totalCobrado?'pago':'aceite';
+  o.status=novoPago>=aReceber?'pago':'aceite';
   saveCPAC();
   // Atualiza ou cria lancamento vinculado no financeiro
   const lancs=getLancs();
