@@ -9466,7 +9466,7 @@ function renderDash(){
   const _orcMapD={};p.forEach(pac=>(pac.orcamentos||[]).forEach(o=>{if(o.id)_orcMapD[o.id]={entrada:o.entrada||0};}));
   const tAR=l.filter(x=>x.status==='pendente'&&x.tipo!=='despesa').reduce((s,x)=>s+Math.max(0,x.valor-((x.entrada!=null?x.entrada:(_orcMapD[x.orcId]?.entrada||0)))),0);
   const atrs=l.filter(x=>isAtras(x));
-  const tAt=atrs.reduce((s,x)=>s+x.valor,0);
+  const tAt=atrs.reduce((s,x)=>s+Math.max(0,x.valor-((x.entrada!=null?x.entrada:(_orcMapD[x.orcId]?.entrada||0)))),0);
   const td=today();const agH=a.filter(x=>x.data===td);
   if($('dR'))$('dR').textContent=fmt(tR);if($('dRs'))$('dRs').textContent=doMes.filter(x=>x.tipo==='receita'&&x.status==='pago').length+' recebimentos';
   if($('dAR'))$('dAR').textContent=fmt(tAR);if($('dARs'))$('dARs').textContent=l.filter(x=>x.status==='pendente').length+' pendentes';
