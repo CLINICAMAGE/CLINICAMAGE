@@ -1405,6 +1405,14 @@ tr:hover td{background:var(--teal-p)}
       <div class="ff" style="flex:0 0 150px"><label>Entrada (R$)</label>
         <input type="number" id="oEnt" step="0.01" min="0" value="0" oninput="calcParc()">
       </div>
+      <div class="ff" id="oEntPgtoWrap" style="flex:0 0 160px;display:none"><label>Forma da entrada</label>
+        <select id="oEntPgto" onchange="calcParc()">
+          <option value="Dinheiro">💵 Dinheiro</option>
+          <option value="PIX">⚡ PIX</option>
+          <option value="Cartão Débito">💳 Cartão Débito</option>
+          <option value="Cartão Crédito">💳 Cartão Crédito</option>
+        </select>
+      </div>
     </div>
     <!-- Taxa de cartão -->
     <div id="orcTaxaWrap" style="display:none;margin-top:10px;padding:12px;background:#fff;border-radius:8px;border:1.5px solid var(--border)">
@@ -5422,19 +5430,21 @@ function _salvarOrcImpl(modo){
   const taxaValor=calc.taxaValor||0;
   const totalCobrado=calc.totalCobrado||totalBase;
   const liquidoClinica=calc.liquidoClinica||totalBase;
-  const taxaOpt=calc.opt||'repassar'; // 'repassar' ou 'assumir'
+  const taxaOpt=calc.opt||'repassar';
   const taxa=calc.taxa||0;
   const pgto=$('oPgto')?.value||'Dinheiro';
   const parcs=parseInt($('oParc')?.value)||1;
   const ent=parseFloat($('oEnt')?.value)||0;
+  const entPgto=calc.entPgto||($('oEntPgto')?.value)||'Dinheiro';
+  const valorNoCartao=calc.valorNoCartao??totalBase;
   const editId=$('orcEditId')?.value||'';
 
   const orc={id:editId||uid(),data:$('oDt').value,desc,
-    total:totalBase,           // valor dos serviços (sem taxa)
-    totalCobrado,              // valor que o paciente paga
-    taxaValor,taxa,taxaOpt,   // dados da taxa
-    liquidoClinica,            // líquido que entra na clínica
-    entrada:ent,parcs,pgto,
+    total:totalBase,
+    totalCobrado,
+    taxaValor,taxa,taxaOpt,
+    liquidoClinica,
+    entrada:ent,entPgto,valorNoCartao,parcs,pgto,
     status:modo==='aceite'?'aceite':'pendente',
     obs:$('oObs')?.value.trim()||'',itens,modo:ORC_MODE};
 
@@ -5513,6 +5523,7 @@ function editOrc(id){
   if($('oDesc'))$('oDesc').value=orc.desc;
   if($('oDt'))$('oDt').value=orc.data;
   if($('oEnt'))$('oEnt').value=orc.entrada||0;
+  if($('oEntPgto')&&orc.entPgto)$('oEntPgto').value=orc.entPgto;
   if($('oParc'))$('oParc').value=orc.parcs||1;
   if($('oPgto'))$('oPgto').value=orc.pgto||'Dinheiro';
   if($('oObs'))$('oObs').value=orc.obs||'';
@@ -6613,6 +6624,16 @@ function calcParc(){
 
   // 4. Calcular valores com taxa
   const ent=parseFloat($('oEnt')?.value)||0;
+  // Mostrar forma de pagamento da entrada quando houver entrada
+  const entPgtoWrap=$('oEntPgtoWrap');
+  if(entPgtoWrap)entPgtoWrap.style.display=ent>0?'':'none';
+  const entPgto=ent>0?($('oEntPgto')?.value||'Dinheiro'):'';
+  // Valor da entrada que vai no cartão (se a forma da entrada for cartão)
+  const entNoCartao=ent>0&&entPgto?.includes('Cartão')?ent:0;
+  const entSemCartao=ent-entNoCartao; // entrada em dinheiro/PIX — sem taxa
+  // O que de fato passa no cartão = total − entrada sem cartão
+  const valorNoCartao=Math.max(0,totalBase-entSemCartao);
+
   let totalCobrado=totalBase;
   let taxaValor=0;
   let liquidoClinica=0;
@@ -6621,22 +6642,20 @@ function calcParc(){
   if(optEl)opt=optEl.value;
 
   if(temCartao){
-    taxaValor=totalBase*(taxa/100);
+    // Taxa incide APENAS sobre o valor efetivamente passado no cartão
+    taxaValor=parseFloat((valorNoCartao*(taxa/100)).toFixed(2));
     if(opt==='repassar'){
-      // Você cobra serviço + taxa do paciente → recebe o valor dos serviços cheio no dia seguinte
-      // Ex: serviço R$1.000, taxa 10% → cobra R$1.100 do paciente → recebe R$1.000
-      totalCobrado=totalBase+taxaValor;   // paciente paga 1.100
-      liquidoClinica=totalBase;           // você recebe 1.000 (cheio, sem desconto)
+      totalCobrado=totalBase+taxaValor;
+      liquidoClinica=totalBase;
     } else {
-      // Você cobra só o serviço → recebe líquido (serviço - taxa) no dia seguinte
-      // Ex: serviço R$1.000, taxa 10% → cobra R$1.000 do paciente → recebe R$900
-      totalCobrado=totalBase;             // paciente paga 1.000
-      liquidoClinica=totalBase-taxaValor; // você recebe 900
+      totalCobrado=totalBase;
+      liquidoClinica=totalBase-taxaValor;
     }
+    const descCartao=`${pgto}${parcs>1?' '+parcs+'x':''} — taxa ${taxa}% sobre ${fmt(valorNoCartao)}${entSemCartao>0?' (entrada de '+fmt(entSemCartao)+' sem taxa)':''}`;
     if($('orcTaxaDesc'))$('orcTaxaDesc').textContent=
       opt==='repassar'
-        ? `${pgto}${parcs>1?' '+parcs+'x':''} — taxa ${taxa}% repassada ao paciente (você recebe ${fmt(totalBase)} cheio)`
-        : `${pgto}${parcs>1?' '+parcs+'x':''} — taxa ${taxa}% que você absorve (você recebe ${fmt(liquidoClinica)})`;
+        ? `${descCartao} — repassada ao paciente`
+        : `${descCartao} — absorvida por você (você recebe ${fmt(liquidoClinica)})`;
     if($('orcTaxaValShow'))$('orcTaxaValShow').textContent=fmt(taxaValor);
     const lblR=$('lblRepassar');const lblA=$('lblAssumr');
     if(lblR)lblR.style.borderColor=opt==='repassar'?'var(--teal)':'var(--border)';
@@ -6670,19 +6689,21 @@ function calcParc(){
       html+=`<div style="background:#fff;border-radius:6px;padding:8px 10px">
         <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Paciente paga</div>
         <div style="font-size:16px;font-weight:700;color:var(--text)">${fmt(totalCobrado)}</div>
-        <div style="font-size:10px;color:var(--muted)">${parcs>1?parcs+'x de '+fmt(totalCobrado/parcs)+' (cartão dele)':'à vista'}</div>
+        <div style="font-size:10px;color:var(--muted)">
+          ${entSemCartao>0?`${fmt(entSemCartao)} ${entPgto} + `:''}${fmt(valorNoCartao+(opt==='repassar'?taxaValor:0))} no cartão${parcs>1?' em '+parcs+'x':''}
+        </div>
       </div>`;
       // Card 4: o que entra na sua conta
       html+=`<div style="background:${opt==='assumir'?'var(--warn-l)':'var(--success-l)'};border-radius:6px;padding:8px 10px;border:1.5px solid ${opt==='assumir'?'#e8c9a0':'#b2ddd4'}">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${opt==='assumir'?'var(--warn)':'var(--success)'}">Cai na sua conta</div>
         <div style="font-size:18px;font-weight:700;color:${opt==='assumir'?'var(--warn)':'var(--success)'}">${fmt(liquidoClinica)}</div>
-        <div style="font-size:10px;color:var(--muted)">hoje ou amanhã (Infinite Pay / Nu Tap)</div>
+        <div style="font-size:10px;color:var(--muted)">${entSemCartao>0?fmt(entSemCartao)+' à vista + ':''}${fmt(opt==='assumir'?valorNoCartao-taxaValor:valorNoCartao)} via cartão</div>
       </div>`;
       html+='</div>';
       // Rodapé informativo
       html+=`<div style="border-top:1px solid rgba(0,0,0,.1);padding-top:8px;font-size:12px;color:var(--teal-d)">
-        <strong>Recebimento:</strong> único, ${fmt(liquidoClinica)} ${opt==='repassar'?'(valor cheio dos serviços)':'(líquido após taxa)'} — dia seguinte via ${pgto}
-        ${opt==='assumir'?` | <span style="color:var(--danger)">Taxa R$${fmt(taxaValor)} lançada como custo financeiro</span>`:''}
+        <strong>Taxa calculada sobre ${fmt(valorNoCartao)}</strong> (valor no cartão)${entSemCartao>0?` | Entrada de ${fmt(entSemCartao)} em ${entPgto} — sem taxa`:''} — dia seguinte via ${pgto}
+        ${opt==='assumir'?` | <span style="color:var(--danger)">Taxa R$ ${fmt(taxaValor)} lançada como custo financeiro</span>`:''}
       </div>`;
     } else {
       // Sem cartão — resumo simples
@@ -6696,7 +6717,7 @@ function calcParc(){
   }
 
   // Salvar para uso no salvarOrc
-  window._orcCalc={totalBase,totalCobrado,taxaValor,liquidoClinica,taxa,opt,parcs,ent,pgto,pv};
+  window._orcCalc={totalBase,totalCobrado,taxaValor,liquidoClinica,taxa,opt,parcs,ent,pgto,pv,entPgto,valorNoCartao,entSemCartao};
   setTimeout(calcLucroOrcamento,50);
 }
 
