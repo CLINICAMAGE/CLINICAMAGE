@@ -7353,8 +7353,8 @@ function finTab(t){
 function renderFin(){
   const area=$('finArea');if(!area)return;
   const all=getLancs();
-  const now=new Date();const mes=now.getMonth();const ano=now.getFullYear();
-  const doMes=all.filter(l=>{if(!l.data)return false;const d=new Date(l.data);return d.getMonth()===mes&&d.getFullYear()===ano});
+  const now=new Date();const mesAtual=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const doMes=all.filter(l=>(l.data||'').startsWith(mesAtual));
   const tR=doMes.filter(l=>l.tipo==='receita'&&l.status==='pago').reduce((s,l)=>s+l.valor,0);
   const tD=doMes.filter(l=>l.tipo==='despesa'&&l.status==='pago').reduce((s,l)=>s+l.valor,0);
   // Mapa orcId→{entrada,liquidoClinica} para lançamentos antigos que não têm campo entrada próprio
@@ -9511,8 +9511,8 @@ function delUser(email){if(!confirm('Remover usuário '+email+'?'))return;const 
 // ══ DASHBOARD ══
 function renderDash(){
   const l=getLancs();const p=getPacs();const a=ls('agendamentos',[]);const ld=ls('leads',[]);
-  const now=new Date();const mes=now.getMonth();const ano=now.getFullYear();
-  const doMes=l.filter(x=>{if(!x.data)return false;const d=new Date(x.data);return d.getMonth()===mes&&d.getFullYear()===ano});
+  const now=new Date();const mesAtualD=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const doMes=l.filter(x=>(x.data||'').startsWith(mesAtualD));
   const tR=doMes.filter(x=>x.tipo==='receita'&&x.status==='pago').reduce((s,x)=>s+x.valor,0);
   const _orcMapD={};p.forEach(pac=>(pac.orcamentos||[]).forEach(o=>{if(o.id)_orcMapD[o.id]={entrada:o.entrada||0};}));
   const tAR=l.filter(x=>x.status==='pendente'&&x.tipo!=='despesa').reduce((s,x)=>s+Math.max(0,x.valor-((x.entrada!=null?x.entrada:(_orcMapD[x.orcId]?.entrada||0)))),0);
