@@ -5476,7 +5476,7 @@ function _salvarOrcImpl(modo){
           paciente:CPAC.nome,pacId:CPAC.id,
           categoria:'Taxas de Cartão',valor:taxaValor,
           status:'pendente',pgto:'Automático',taxaRef:orc.id,
-          obs:`Taxa assumida pela clínica. Pagar quando receber o repasse da operadora.`});
+          obs:`Taxa assumida pela clínica.`});
       }
     }
     // COMISSÕES: a pagar ao profissional → pendente
@@ -6818,6 +6818,11 @@ function salvarPgtoOrc(){
     lanc.valor=aReceber;
     lanc.entrada=novoPago;
     if(o.status==='pago')lanc.data=today();
+    // Se quitado e clínica assumiu a taxa → marcar despesa de taxa como paga também
+    if(o.status==='pago'&&(o.taxaOpt||'repassar')==='assumir'){
+      const taxaLanc=lancs.find(l=>(l.taxaRef===id||l.orcId===id)&&l.tipo==='despesa'&&l.categoria==='Taxas de Cartão');
+      if(taxaLanc){taxaLanc.status='pago';taxaLanc.data=today();}
+    }
     saveLancs(lancs);
   } else {
     // Lançamento não existe (orçamento aceito antes do sistema de financeiro) — criar agora
