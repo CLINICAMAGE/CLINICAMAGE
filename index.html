@@ -5466,9 +5466,9 @@ function _salvarOrcImpl(modo){
     } else {
       l.push({id:uid(),tipo:'receita',data:dataOrc,
         desc:desc,paciente:CPAC.nome,pacId:CPAC.id,
-        categoria:'Orçamento',valor:liquidoClinica,
+        categoria:'Orçamento',valor:totalBase,
         status:'pendente',pgto,parcs,orcId:orc.id,
-        obs:`Aguardando confirmação de recebimento | Via ${pgto}${parcs>1?' '+parcs+'x':''} | Taxa ${taxa}% absorvida pela clínica | Bruto: ${fmt(totalBase)}`});
+        obs:`Aguardando confirmação de recebimento | Via ${pgto}${parcs>1?' '+parcs+'x':''} | Taxa ${taxa}% absorvida pela clínica`});
       // TAXA CARTÃO: entra como A PAGAR
       if(taxaValor>0){
         l.push({id:uid(),tipo:'despesa',data:dataOrc,
@@ -6827,7 +6827,7 @@ function salvarPgtoOrc(){
   } else {
     // Lançamento não existe (orçamento aceito antes do sistema de financeiro) — criar agora
     const totalBase=o.total||0;
-    const valorLanc=o.taxaOpt==='assumir'?(o.liquidoClinica||totalBase):totalBase;
+    const valorLanc=totalBase; // sempre o bruto; se assumiu taxa, a despesa de taxa deduz separado
     lancs.push({id:uid(),tipo:'receita',data:today(),
       desc:o.desc,paciente:CPAC.nome,pacId:CPAC.id,
       categoria:'Orçamento',valor:valorLanc,
@@ -6868,12 +6868,12 @@ function aceitarOrc(id){
       parcs:o.parcs,orcId:o.id,
       obs:`Aceite confirmado | ${taxa?`Taxa ${taxa}% (${fmt(taxaValor)}) repassada ao paciente — cobrado: ${fmt(totalCobrado)}`:'Sem taxa de cartão'} | Infinite Pay / Nu Tap: recebimento antecipado`});
   } else {
-    // Assumiu a taxa — recebe o líquido
+    // Assumiu a taxa — receita pelo bruto; despesa separada cobre a taxa
     l.push({id:uid(),tipo:'receita',data:dataReceb,
       desc:o.desc,paciente:CPAC.nome,pacId:CPAC.id,
-      categoria:'Orçamento',valor:liquidoClinica,status:o.status==='pago'?'pago':'pendente',pgto:o.pgto,
+      categoria:'Orçamento',valor:totalBase,status:o.status==='pago'?'pago':'pendente',pgto:o.pgto,
       parcs:o.parcs,orcId:o.id,
-      obs:`Aceite confirmado | Taxa ${taxa}% (${fmt(taxaValor)}) absorvida pela clínica | Valor bruto: ${fmt(totalBase)} | Líquido: ${fmt(liquidoClinica)}`});
+      obs:`Aceite confirmado | Taxa ${taxa}% (${fmt(taxaValor)}) absorvida pela clínica`});
     // Custo financeiro da taxa
     l.push({id:uid(),tipo:'despesa',data:dataReceb,
       desc:`Custo financeiro — Taxa ${o.pgto}${o.parcs>1?' '+o.parcs+'x':''} (${taxa}%) sobre "${o.desc}"`,
@@ -7364,7 +7364,7 @@ function renderFin(){
   const tD=doMes.filter(l=>l.tipo==='despesa'&&l.status==='pago').reduce((s,l)=>s+l.valor,0);
   // Mapa orcId→{entrada,liquidoClinica} para lançamentos antigos que não têm campo entrada próprio
   const _orcMap={};
-  getPacs().forEach(p=>(p.orcamentos||[]).forEach(o=>{if(o.id)_orcMap[o.id]={entrada:o.entrada||0,aRec:o.liquidoClinica||o.total||0};}));
+  getPacs().forEach(p=>(p.orcamentos||[]).forEach(o=>{if(o.id)_orcMap[o.id]={entrada:o.entrada||0,aRec:o.total||0};}));
   const _pendParcial=(l)=>{
     const ent=l.entrada!=null?l.entrada:(_orcMap[l.orcId]?.entrada||0);
     return Math.max(0,l.valor-ent);
