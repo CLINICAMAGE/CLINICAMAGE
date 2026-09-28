@@ -967,6 +967,7 @@ tr:hover td{background:var(--teal-p)}
       </div>
       <div class="stabs no-print">
         <div class="stab on" onclick="relTab('fat')">💰 Faturamento</div>
+        <div class="stab" onclick="relTab('fatprof')">👤 Por Profissional</div>
         <div class="stab" onclick="relTab('proc')">🦷 Procedimentos</div>
         <div class="stab" onclick="relTab('inad')">⚠️ Inadimplência</div>
         <div class="stab" onclick="relTab('comp')">📊 Comparativo DRE</div>
@@ -1340,6 +1341,17 @@ tr:hover td{background:var(--teal-p)}
   <div class="fr">
     <div class="ff"><label>Descrição / Título do Orçamento</label><input type="text" id="oDesc" placeholder="Ex: Tratamento completo, Harmonização Facial..."></div>
     <div class="ff" style="flex:0 0 140px"><label>Data</label><input type="date" id="oDt"></div>
+  </div>
+  <div class="fr" style="margin-bottom:4px">
+    <div class="ff" id="oProfWrap"><label>Profissional responsável</label>
+      <select id="oProf" style="width:100%"><option value="">— Selecione —</option></select>
+    </div>
+    <div id="oProfPorItemToggleWrap" style="flex:0 0 auto;display:none;align-items:flex-end;padding-bottom:6px">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;white-space:nowrap">
+        <input type="checkbox" id="oProfPorItem" onchange="toggleProfPorItem()">
+        <span>Profissional por procedimento</span>
+      </label>
+    </div>
   </div>
   <!-- MODO SIMPLES -->
   <div id="orcSimples">
@@ -3999,12 +4011,34 @@ let CEDIT_PROC=null;
 let ORC_ITENS=[];
 let ORC_MODE='simples';
 
+function _getProfOpts(){
+  // Lista de profissionais da equipe cadastrada
+  const equipe=ls('equipe',[]);
+  const nomes=equipe.map(e=>e.nome).filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  return nomes.length?nomes:[];
+}
+function _populateProfSel(){
+  const sel=$('oProf');if(!sel)return;
+  const nomes=_getProfOpts();
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Selecione —</option>'+nomes.map(n=>`<option value="${n}">${n}</option>`).join('');
+  if(cur)sel.value=cur;
+}
+function toggleProfPorItem(){
+  const porItem=$('oProfPorItem')?.checked;
+  const profWrap=$('oProfWrap');
+  if(profWrap)profWrap.style.display=porItem?'none':'';
+  renderItensOrc();
+}
 function setOrcMode(m){
   ORC_MODE=m;
   $('orcSimples').style.display=m==='simples'?'':'none';
   $('orcDetalhe').style.display=m==='detalhe'?'':'none';
   $('orcModoSimples').className='btn btn-sm '+(m==='simples'?'btn-p':'btn-o');
   $('orcModoDetalhe').className='btn btn-sm '+(m==='detalhe'?'btn-p':'btn-o');
+  // Mostrar toggle "profissional por procedimento" só no modo detalhado
+  const togWrap=$('oProfPorItemToggleWrap');
+  if(togWrap)togWrap.style.display=m==='detalhe'?'flex':'none';
   if(m==='detalhe')renderProcSelect();
 }
 
@@ -4045,6 +4079,8 @@ function addItemOrcManual(){
 function renderOrcItens(){
   const lista=$('orcItensLista');if(!lista)return;
   if(!ORC_ITENS.length){lista.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:12px">Nenhum item adicionado</div>';updateTotalOrc();return}
+  const profPorItem=$('oProfPorItem')?.checked;
+  const profOpts=_getProfOpts();
   lista.innerHTML=`<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
     <table style="width:100%;border-collapse:collapse">
       <thead><tr style="background:var(--teal-p)">
@@ -4052,6 +4088,7 @@ function renderOrcItens(){
         <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;color:var(--teal-d);text-transform:uppercase;width:60px">Qtd</th>
         <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--teal-d);text-transform:uppercase;width:100px">Unit.</th>
         <th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:700;color:var(--teal-d);text-transform:uppercase;width:100px">Total</th>
+        ${profPorItem?`<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--teal-d);text-transform:uppercase;width:150px">Profissional</th>`:''}
         <th style="width:40px"></th>
       </tr></thead>
       <tbody>${ORC_ITENS.map(it=>`<tr style="border-top:1px solid var(--border)">
@@ -4063,6 +4100,7 @@ function renderOrcItens(){
           <input type="number" value="${it.val}" step="0.01" min="0" style="width:90px;border:1px solid var(--border);border-radius:4px;padding:2px 6px;text-align:right;font-size:12px" onchange="updateItemOrc('${it.id}','val',this.value)">
         </td>
         <td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:700;color:var(--teal)">${fmt(it.qtd*it.val)}</td>
+        ${profPorItem?`<td style="padding:4px 8px"><select style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:3px 4px" onchange="updateItemOrc('${it.id}','prof',this.value)"><option value="">—</option>${profOpts.map(n=>`<option value="${n}" ${it.prof===n?'selected':''}>${n}</option>`).join('')}</select></td>`:''}
         <td style="padding:8px 4px;text-align:center"><button onclick="removeItemOrc('${it.id}')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px">✕</button></td>
       </tr>`).join('')}
       </tbody>
@@ -5069,6 +5107,12 @@ function initOrcModal(){
   if($('orcShowDetalhe'))$('orcShowDetalhe').checked=true;
   const radios=document.querySelectorAll('input[name="orcTaxaOpt"]');
   radios.forEach((r,i)=>r.checked=i===0);
+  // Reset profissional
+  _populateProfSel();
+  if($('oProf'))$('oProf').value='';
+  if($('oProfPorItem'))$('oProfPorItem').checked=false;
+  if($('oProfWrap'))$('oProfWrap').style.display='';
+  if($('oProfPorItemToggleWrap'))$('oProfPorItemToggleWrap').style.display='none';
   setTimeout(calcParc,50);
 }
 
@@ -5438,6 +5482,8 @@ function _salvarOrcImpl(modo){
   const entPgto=calc.entPgto||($('oEntPgto')?.value)||'Dinheiro';
   const valorNoCartao=calc.valorNoCartao??totalBase;
   const editId=$('orcEditId')?.value||'';
+  const profResp=$('oProf')?.value||'';
+  const profPorItem=$('oProfPorItem')?.checked&&ORC_MODE==='detalhe';
 
   const orc={id:editId||uid(),data:$('oDt').value,desc,
     total:totalBase,
@@ -5445,6 +5491,7 @@ function _salvarOrcImpl(modo){
     taxaValor,taxa,taxaOpt,
     liquidoClinica,
     entrada:ent,entPgto,valorNoCartao,parcs,pgto,
+    prof:profResp,profPorItem,
     status:modo==='aceite'?'aceite':'pendente',
     obs:$('oObs')?.value.trim()||'',itens,modo:ORC_MODE};
 
@@ -5460,13 +5507,13 @@ function _salvarOrcImpl(modo){
     if(taxaOpt==='repassar'){
       l.push({id:uid(),tipo:'receita',data:dataOrc,
         desc:desc,paciente:CPAC.nome,pacId:CPAC.id,
-        categoria:'Orçamento',valor:totalBase,
+        categoria:'Orçamento',valor:totalBase,prof:profResp,
         status:'pendente',pgto,parcs,orcId:orc.id,
         obs:`Aguardando confirmação de recebimento | Via ${pgto}${parcs>1?' '+parcs+'x':''} | Taxa ${taxa}% repassada ao paciente | Cobrado: ${fmt(totalCobrado)}`});
     } else {
       l.push({id:uid(),tipo:'receita',data:dataOrc,
         desc:desc,paciente:CPAC.nome,pacId:CPAC.id,
-        categoria:'Orçamento',valor:totalBase,
+        categoria:'Orçamento',valor:totalBase,prof:profResp,
         status:'pendente',pgto,parcs,orcId:orc.id,
         obs:`Aguardando confirmação de recebimento | Via ${pgto}${parcs>1?' '+parcs+'x':''} | Taxa ${taxa}% absorvida pela clínica`});
       // TAXA CARTÃO: entra como A PAGAR
@@ -5534,6 +5581,12 @@ function editOrc(id){
     const radios=document.querySelectorAll('input[name="orcTaxaOpt"]');
     radios.forEach(r=>{r.checked=r.value===orc.taxaOpt});
   }
+  // Restore profissional
+  _populateProfSel();
+  if($('oProf')&&orc.prof)$('oProf').value=orc.prof;
+  if($('oProfPorItem'))$('oProfPorItem').checked=!!orc.profPorItem;
+  if($('oProfWrap'))$('oProfWrap').style.display=orc.profPorItem?'none':'';
+  if($('oProfPorItemToggleWrap'))$('oProfPorItemToggleWrap').style.display=ORC_MODE==='detalhe'?'flex':'none';
   setTimeout(calcParc,100);openM('mOrc');
 }
 
@@ -6864,14 +6917,14 @@ function aceitarOrc(id){
     const valorReceber=taxa?totalBase:totalBase;
     l.push({id:uid(),tipo:'receita',data:dataReceb,
       desc:o.desc,paciente:CPAC.nome,pacId:CPAC.id,
-      categoria:'Orçamento',valor:valorReceber,status:o.status==='pago'?'pago':'pendente',pgto:o.pgto,
+      categoria:'Orçamento',valor:valorReceber,prof:o.prof||'',status:o.status==='pago'?'pago':'pendente',pgto:o.pgto,
       parcs:o.parcs,orcId:o.id,
       obs:`Aceite confirmado | ${taxa?`Taxa ${taxa}% (${fmt(taxaValor)}) repassada ao paciente — cobrado: ${fmt(totalCobrado)}`:'Sem taxa de cartão'} | Infinite Pay / Nu Tap: recebimento antecipado`});
   } else {
     // Assumiu a taxa — receita pelo bruto; despesa separada cobre a taxa
     l.push({id:uid(),tipo:'receita',data:dataReceb,
       desc:o.desc,paciente:CPAC.nome,pacId:CPAC.id,
-      categoria:'Orçamento',valor:totalBase,status:o.status==='pago'?'pago':'pendente',pgto:o.pgto,
+      categoria:'Orçamento',valor:totalBase,prof:o.prof||'',status:o.status==='pago'?'pago':'pendente',pgto:o.pgto,
       parcs:o.parcs,orcId:o.id,
       obs:`Aceite confirmado | Taxa ${taxa}% (${fmt(taxaValor)}) absorvida pela clínica`});
     // Custo financeiro da taxa
@@ -7122,14 +7175,43 @@ function excluirTodosDispensados(){
   if(!confirm('Excluir todos os retornos dispensados?'))return;
   saveRetornos(getRetornos().filter(x=>x.status!=='dispensado'));renderAgenda();
 }
+function _detectTipoRetorno(procNome){
+  const nm=(procNome||'').toLowerCase();
+  if(nm.includes('toxina')||nm.includes('botox')||nm.includes('botulínica')||nm.includes('botulinica'))return'toxina';
+  if(nm.includes('preenchimento')||nm.includes('preenchedor')||nm.includes('ácido hial')||nm.includes('acido hial')||nm.includes('rinomodel')||/\bah\b/.test(nm))return'ah';
+  if(nm.includes('bioest')||nm.includes('sculptra')||nm.includes('radiesse')||nm.includes('ellansé')||nm.includes('ellanse'))return'bioest';
+  return null;
+}
 function salvarAgend(){
   const pacId=$('agPac').value;const p=getPacs().find(x=>x.id===pacId);
-  const a={id:uid(),data:$('agDt').value,hora:$('agHr').value,dur:$('agDur').value,
-    proc:$('agProc').value,prof:$('agProf').value.trim(),obs:$('agObs').value.trim(),
+  const dataAg=$('agDt').value;const procNome=$('agProc').value;
+  const a={id:uid(),data:dataAg,hora:$('agHr').value,dur:$('agDur').value,
+    proc:procNome,prof:$('agProf').value.trim(),obs:$('agObs').value.trim(),
     status:$('agSt').value,pacId,pacNome:p?.nome||'',pacTel:p?.tel||'',
     retornoId:_agendRetornoId||null};
   _agendRetornoId=null;
   const arr=ls('agendamentos',[]);arr.push(a);ss('agendamentos',arr);
+  // Dispensar retornos pendentes do mesmo paciente+tipo e criar próximo ciclo
+  if(pacId&&dataAg){
+    const tipo=_detectTipoRetorno(procNome);
+    if(tipo){
+      const retArr=getRetornos();
+      let dispensouAlgum=false;
+      retArr.forEach(r=>{if(r.pacId===pacId&&r.tipo===tipo&&r.status==='pendente'){r.status='dispensado';dispensouAlgum=true;}});
+      // Criar próximo retorno baseado na data do agendamento
+      const labels={toxina:'Retorno Toxina Botulínica',ah:'Retorno Preenchimento AH',bioest:'Bioestimulador — Manutenção'};
+      const meses={toxina:3,ah:6,bioest:12};
+      if(dispensouAlgum||tipo!=='bioest'){
+        // Para bioest: só cria manutenção se protocolo completo, senão usa _criarRetornos via orçamento
+        if(tipo!=='bioest'||dispensouAlgum){
+          const proxMeses=tipo==='bioest'?12:meses[tipo];
+          retArr.push({id:uid(),pacId,pacNome:p?.nome||'',tipo,label:labels[tipo],
+            dataRetorno:_addMeses(dataAg,proxMeses),orcOrigem:null,status:'pendente',criadoEm:today()});
+        }
+      }
+      saveRetornos(retArr);
+    }
+  }
   closeM('mAgend');renderAgenda();renderDash();
   ['agProf','agObs'].forEach(id=>{const el=$(id);if(el)el.value=''});
 }
@@ -8619,23 +8701,112 @@ function dispensarRetorno(id){
 let CREL='fat';
 function relTab(t){
   CREL=t;
-  const tabs=['fat','proc','inad','comp','pac','ag','crm'];
+  const tabs=['fat','fatprof','proc','inad','comp','pac','ag','crm'];
   document.querySelectorAll('#page-relatorios .stab').forEach((el,i)=>el.classList.toggle('on',tabs[i]===t));
   renderRel();
+}
+function _relMesFiltro(){
+  // Retorna o valor do filtro de mês (YYYY-MM) ou '' para todos
+  return $('relMesFiltro')?.value||'';
+}
+function _relPrintBtn(titulo){
+  return`<button class="btn btn-o btn-sm no-print" onclick="window.print()" style="margin-bottom:12px">🖨️ Imprimir / PDF</button>
+  <div class="print-title" style="display:none">${titulo}</div>`;
 }
 function renderRel(){
   const area=$('relArea');if(!area)return;
   const l=getLancs();const p=getPacs();const a=ls('agendamentos',[]);const ld=ls('leads',[]);
   if(CREL==='fat'){
-    const rec=l.filter(x=>x.tipo==='receita'&&x.status==='pago');
-    const desp=l.filter(x=>x.tipo==='despesa'&&x.status==='pago');
+    const now=new Date();
+    const mesPadrao=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const mesFiltro=_relMesFiltro()||mesPadrao;
+    const filtrarMes=(x)=>mesFiltro?((x.data||'').startsWith(mesFiltro)):true;
+    const rec=l.filter(x=>x.tipo==='receita'&&x.status==='pago'&&filtrarMes(x));
+    const desp=l.filter(x=>x.tipo==='despesa'&&x.status==='pago'&&filtrarMes(x));
     const tR=rec.reduce((s,x)=>s+x.valor,0);const tD=desp.reduce((s,x)=>s+x.valor,0);
-    area.innerHTML=`<div class="g4" style="margin-bottom:14px">
-      <div class="sc sc-teal"><div class="sc-label">Receita Total</div><div class="sc-val">${fmt(tR)}</div></div>
-      <div class="sc sc-red"><div class="sc-label">Despesas Total</div><div class="sc-val">${fmt(tD)}</div></div>
-      <div class="sc sc-green"><div class="sc-label">Lucro Total</div><div class="sc-val">${fmt(tR-tD)}</div></div>
+    // Montar lista de meses disponíveis
+    const mesesDisp=[...new Set(l.map(x=>(x.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
+    const mesSel=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <label style="font-size:13px;font-weight:600">Mês:</label>
+      <select id="relMesFiltro" onchange="renderRel()" style="border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px">
+        <option value="">Todos os meses</option>
+        ${mesesDisp.map(m=>`<option value="${m}" ${m===mesFiltro?'selected':''}>${m.slice(5,7)}/${m.slice(0,4)}</option>`).join('')}
+      </select>
+      ${_relPrintBtn('Relatório de Faturamento — '+mesFiltro)}
+    </div>`;
+    // Receitas detalhadas por paciente
+    const recRows=rec.sort((a,b)=>(a.data||'').localeCompare(b.data||'')).map(x=>`<tr>
+      <td>${fmtD(x.data)}</td><td style="font-weight:600">${x.paciente||'—'}</td>
+      <td>${x.desc||x.categoria||'—'}</td><td>${x.pgto||'—'}</td>
+      <td style="color:var(--success);font-weight:700">${fmt(x.valor)}</td></tr>`).join('');
+    area.innerHTML=`${mesSel}
+    <div class="g4" style="margin-bottom:14px">
+      <div class="sc sc-teal"><div class="sc-label">Receita do Período</div><div class="sc-val">${fmt(tR)}</div><div class="sc-sub">${rec.length} recebimentos</div></div>
+      <div class="sc sc-red"><div class="sc-label">Despesas do Período</div><div class="sc-val">${fmt(tD)}</div></div>
+      <div class="sc sc-green"><div class="sc-label">Resultado</div><div class="sc-val">${fmt(tR-tD)}</div></div>
       <div class="sc sc-gold"><div class="sc-label">Margem</div><div class="sc-val">${tR?Math.round((tR-tD)/tR*100)+'%':'0%'}</div></div>
-    </div>${renderFluxo(l)}`;
+    </div>
+    <div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">Receitas do período</div>
+    <div class="tw"><table><thead><tr><th>Data</th><th>Paciente</th><th>Descrição</th><th>Forma Pgto</th><th>Valor</th></tr></thead>
+    <tbody>${recRows||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Sem receitas no período</td></tr>'}</tbody>
+    <tfoot><tr><td colspan="4" style="font-weight:700;text-align:right;padding-top:8px">Total</td><td style="font-weight:700;color:var(--success)">${fmt(tR)}</td></tr></tfoot>
+    </table></div></div>`;
+  }else if(CREL==='fatprof'){
+    const now2=new Date();
+    const mesPadrao2=`${now2.getFullYear()}-${String(now2.getMonth()+1).padStart(2,'0')}`;
+    const mesFiltro2=_relMesFiltro()||mesPadrao2;
+    const mesesDisp2=[...new Set(l.map(x=>(x.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
+    const mesSel2=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <label style="font-size:13px;font-weight:600">Mês:</label>
+      <select id="relMesFiltro" onchange="renderRel()" style="border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:13px">
+        <option value="">Todos os meses</option>
+        ${mesesDisp2.map(m=>`<option value="${m}" ${m===mesFiltro2?'selected':''}>${m.slice(5,7)}/${m.slice(0,4)}</option>`).join('')}
+      </select>
+      ${_relPrintBtn('Faturamento por Profissional — '+mesFiltro2)}
+    </div>`;
+    // Agregar lançamentos de receita pago por profissional
+    const porProf={};
+    l.filter(x=>x.tipo==='receita'&&x.status==='pago'&&(mesFiltro2?(x.data||'').startsWith(mesFiltro2):true)).forEach(x=>{
+      // Itens por profissional (modo detalhado com profPorItem)
+      const orc=p.flatMap(pac=>pac.orcamentos||[]).find(o=>o.id===x.orcId);
+      if(orc?.profPorItem&&(orc.itens||[]).some(it=>it.prof)){
+        // Distribuir valor proporcionalmente por profissional dos itens
+        const totalItens=orc.itens.reduce((s,it)=>s+(it.qtd*it.val),0)||1;
+        orc.itens.forEach(it=>{
+          const pf=it.prof||'Sem profissional';
+          if(!porProf[pf])porProf[pf]={total:0,lancs:[],pacientes:new Set()};
+          const propVal=x.valor*(it.qtd*it.val)/totalItens;
+          porProf[pf].total+=propVal;
+          porProf[pf].pacientes.add(x.paciente||'—');
+          porProf[pf].lancs.push({data:x.data,pac:x.paciente||'—',desc:it.desc,valor:propVal});
+        });
+      } else {
+        const pf=x.prof||orc?.prof||'Sem profissional';
+        if(!porProf[pf])porProf[pf]={total:0,lancs:[],pacientes:new Set()};
+        porProf[pf].total+=x.valor;
+        porProf[pf].pacientes.add(x.paciente||'—');
+        porProf[pf].lancs.push({data:x.data,pac:x.paciente||'—',desc:x.desc||x.categoria||'—',valor:x.valor});
+      }
+    });
+    const profEntries=Object.entries(porProf).sort((a,b)=>b[1].total-a[1].total);
+    const totalGeral=profEntries.reduce((s,[,v])=>s+v.total,0);
+    const profCards=profEntries.map(([prof,d])=>`
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div><span style="font-weight:700;font-size:14px">👤 ${prof}</span>
+          <span style="font-size:12px;color:var(--muted);margin-left:10px">${d.pacientes.size} paciente(s) · ${d.lancs.length} lançamento(s)</span></div>
+          <div style="font-size:18px;font-weight:700;color:var(--teal)">${fmt(d.total)}</div>
+        </div>
+        <div class="tw"><table><thead><tr><th>Data</th><th>Paciente</th><th>Descrição</th><th>Valor</th></tr></thead><tbody>
+        ${d.lancs.sort((a,b)=>(a.data||'').localeCompare(b.data||'')).map(x=>`<tr>
+          <td>${fmtD(x.data)}</td><td>${x.pac}</td><td>${x.desc}</td>
+          <td style="color:var(--success);font-weight:700">${fmt(x.valor)}</td></tr>`).join('')}
+        <tr><td colspan="3" style="font-weight:700;text-align:right">Subtotal</td><td style="font-weight:700;color:var(--success)">${fmt(d.total)}</td></tr>
+        </tbody></table></div>
+      </div>`).join('');
+    area.innerHTML=`${mesSel2}
+    <div class="sc sc-teal" style="margin-bottom:14px"><div class="sc-label">Total Geral do Período</div><div class="sc-val">${fmt(totalGeral)}</div><div class="sc-sub">${profEntries.length} profissional(is)</div></div>
+    ${profCards||'<div class="card"><div class="empty"><p>Nenhum lançamento com profissional no período. Lembre-se de selecionar o profissional ao criar orçamentos.</p></div></div>'}`;
   }else if(CREL==='proc'){
     const cats={};l.filter(x=>x.tipo==='receita').forEach(x=>{const c=x.categoria||'Outros';cats[c]=(cats[c]||0)+x.valor});
     const entries=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
