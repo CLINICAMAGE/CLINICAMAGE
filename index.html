@@ -564,6 +564,7 @@ tr:hover td{background:var(--teal-p)}
         <div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">Funil de Leads</div><div id="dashCRM"></div></div>
       </div>
       <div id="dashAniversarios" style="margin-top:14px"></div>
+      <div id="dashVencimentos" style="margin-top:14px"></div>
       <div id="dashRetornos" style="margin-top:14px"></div>
       <div id="dashSessoes" style="margin-top:14px"></div>
       <div id="dashTarefasHoje" style="margin-top:14px"></div>
@@ -2184,15 +2185,30 @@ function launchApp(user,email){
   restoreLogos();applyTheme();applyWatermark();applyLogoToSidebar();renderAll();
   _startInact();
   auditLog('login','sistema','',`Login: ${email||SESS?.email||''}`);
-  // Aviso de tarefas atrasadas ao entrar
+  // Aviso de tarefas + vencimentos ao entrar
   setTimeout(()=>{
     const td=today();
+    const amanha=new Date(td+'T12:00:00');amanha.setDate(amanha.getDate()+1);
+    const amanhaStr=amanha.toISOString().split('T')[0];
+    // Tarefas atrasadas
     const atrasadas=getTarefas().filter(t=>t.status==='pendente'&&t.data&&t.data<td);
     const minhas=atrasadas.filter(t=>!t.responsavel||t.responsavel===user.name);
+    // Vencimentos hoje e amanhã
+    const vencimentos=getLancs().filter(l=>l.tipo==='despesa'&&l.status==='pendente'&&(l.data===td||l.data===amanhaStr));
+    const avisos=[];
     if(minhas.length){
-      const nomes=minhas.slice(0,3).map(t=>`• ${t.titulo} (${fmtD(t.data)})`).join('\n');
-      const extra=minhas.length>3?`\n...e mais ${minhas.length-3} tarefa(s).`:'';
-      alert(`⚠️ Você tem ${minhas.length} tarefa(s) atrasada(s):\n\n${nomes}${extra}\n\nAcesse a seção Tarefas para visualizar.`);
+      avisos.push(`📋 TAREFAS ATRASADAS (${minhas.length}):`);
+      minhas.slice(0,3).forEach(t=>avisos.push(`  • ${t.titulo} (${fmtD(t.data)})`));
+      if(minhas.length>3)avisos.push(`  ...e mais ${minhas.length-3} tarefa(s).`);
+    }
+    if(vencimentos.length){
+      if(avisos.length)avisos.push('');
+      avisos.push(`💳 VENCIMENTOS (${vencimentos.length}):`);
+      vencimentos.slice(0,4).forEach(v=>avisos.push(`  • ${v.desc||v.categoria||'—'} — ${fmt(v.valor)} (${v.data===td?'HOJE':'amanhã'})`));
+      if(vencimentos.length>4)avisos.push(`  ...e mais ${vencimentos.length-4} conta(s).`);
+    }
+    if(avisos.length){
+      alert('⚠️ Atenção!\n\n'+avisos.join('\n'));
     }
   },1200);
 
@@ -6867,8 +6883,8 @@ function salvarPgtoOrc(){
   const lanc=lancs.find(l=>l.orcId===id&&l.tipo==='receita');
   if(lanc){
     lanc.status=o.status==='pago'?'pago':'pendente';
-    // valor = total a receber; entrada = quanto já foi confirmado
-    lanc.valor=aReceber;
+    // valor = bruto (gross); despesa de taxa deduz separado quando assumir
+    lanc.valor=o.total||aReceber;
     lanc.entrada=novoPago;
     if(o.status==='pago')lanc.data=today();
     // Se quitado e clínica assumiu a taxa → marcar despesa de taxa como paga também
@@ -7857,7 +7873,18 @@ function exportCSV(){
 }
 
 // ══ CRM ══
-const ESTGS=[{id:'lead',l:'Lead',c:'b-gray',bc:'#888'},{id:'contato',l:'Contato feito',c:'b-info',bc:'var(--info)'},{id:'orcamento',l:'Orçamento enviado',c:'b-warn',bc:'var(--warn)'},{id:'aprovado',l:'Aprovado',c:'b-teal',bc:'var(--teal)'},{id:'tratamento',l:'Em tratamento',c:'b-gold',bc:'var(--gold)'},{id:'concluido',l:'Concluído',c:'b-green',bc:'var(--success)'}];
+const _ESTGS_DEFAULT=[{id:'lead',l:'Lead',c:'b-gray',bc:'#888'},{id:'contato',l:'Contato feito',c:'b-info',bc:'var(--info)'},{id:'orcamento',l:'Orçamento enviado',c:'b-warn',bc:'var(--warn)'},{id:'aprovado',l:'Aprovado',c:'b-teal',bc:'var(--teal)'},{id:'tratamento',l:'Em tratamento',c:'b-gold',bc:'var(--gold)'},{id:'concluido',l:'Concluído',c:'b-green',bc:'var(--success)'}];
+function getEstgLabels(){return ls('crmEstgLabels',{});}
+function saveEstgLabel(id,label){const m=getEstgLabels();m[id]=label;ss('crmEstgLabels',m);}
+const ESTGS=_ESTGS_DEFAULT.map(s=>({...s,get l(){return getEstgLabels()[s.id]||s.id==='lead'?getEstgLabels()[s.id]||'Lead':getEstgLabels()[s.id]||_ESTGS_DEFAULT.find(x=>x.id===s.id)?.l||s.id}}));
+function getEstgLabel(id){return getEstgLabels()[id]||_ESTGS_DEFAULT.find(s=>s.id===id)?.l||id;}
+function editarTituloEstagio(id){
+  const atual=getEstgLabel(id);
+  const novo=prompt(`Renomear etapa "${atual}":\n\nNovo título:`,atual);
+  if(!novo||novo.trim()===atual)return;
+  saveEstgLabel(id,novo.trim());
+  renderKanban();
+}
 function salvarLead(){
   const nome=$('ldN').value.trim();if(!nome)return alert('Nome obrigatório.');
   const l={id:uid(),nome,tel:$('ldTel').value.trim(),origem:$('ldOrig').value,
@@ -7886,7 +7913,7 @@ function viewLead(id){
       <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Data</div><div>${fmtD(l.data)}</div></div>
       <div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Estágio</div>
         <select id="ldEstEdit" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:7px;font-size:13px;outline:none">
-          ${ESTGS.map(s=>`<option value="${s.id}" ${l.estagio===s.id?'selected':''}>${s.l}</option>`).join('')}
+          ${_ESTGS_DEFAULT.map(s=>`<option value="${s.id}" ${l.estagio===s.id?'selected':''}>${getEstgLabel(s.id)}</option>`).join('')}
           <option value="perdido" ${l.estagio==='perdido'?'selected':''}>❌ Perdido</option>
         </select>
       </div>
@@ -7912,11 +7939,15 @@ function renderKanban(){
   if($('cT'))$('cT').textContent=tot;if($('cA'))$('cA').textContent=and;
   if($('cC'))$('cC').textContent=conv;if($('cP'))$('cP').textContent=perd;
   if($('cTx'))$('cTx').textContent=tot?Math.round(conv/tot*100)+'%':'0%';
-  board.innerHTML=ESTGS.map(st=>{
+  board.innerHTML=_ESTGS_DEFAULT.map(st=>{
+    const lbl=getEstgLabel(st.id);
     const cards=leads.filter(l=>l.estagio===st.id);
-    const estgsOther=ESTGS.filter(s=>s.id!==st.id);
+    const estgsOther=_ESTGS_DEFAULT.filter(s=>s.id!==st.id);
     return`<div class="kb-col" ondragover="event.preventDefault()" ondrop="dropLead(event,'${st.id}')">
-      <div class="kb-head" style="border-top:3px solid ${st.bc||'var(--teal)'}">${st.l}<span class="badge ${st.c}">${cards.length}</span></div>
+      <div class="kb-head" style="border-top:3px solid ${st.bc||'var(--teal)'}">
+        <span>${lbl}</span><span class="badge ${st.c}">${cards.length}</span>
+        <button onclick="editarTituloEstagio('${st.id}')" title="Renomear etapa" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);padding:0 2px;margin-left:4px">✏️</button>
+      </div>
       <div class="kb-body" id="kbBody_${st.id}">${cards.map(c=>`<div class="kb-card" draggable="true" ondragstart="dragLead(event,'${c.id}')" style="cursor:grab">
         <h5>${c.nome}</h5>
         <p style="margin-bottom:4px">${c.interesse||''} ${c.origem?'· '+c.origem:''}<br><span style="font-size:10px;color:var(--muted)">${fmtD(c.data)}</span></p>
@@ -7924,7 +7955,7 @@ function renderKanban(){
         <div style="margin-bottom:6px">
           <select onchange="moveLead('${c.id}',this.value);this.value=''" style="width:100%;font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;outline:none;color:var(--muted)">
             <option value="">↪ Mover para...</option>
-            ${estgsOther.map(ns=>`<option value="${ns.id}">${ns.l}</option>`).join('')}
+            ${estgsOther.map(ns=>`<option value="${ns.id}">${getEstgLabel(ns.id)}</option>`).join('')}
             <option value="perdido">❌ Perdido</option>
           </select>
         </div>
@@ -9779,6 +9810,32 @@ function renderDash(){
         }).join('')}
       </div>`;
     } else ds.innerHTML='';
+  }
+  // Vencimentos hoje e amanhã no dashboard
+  const dv=$('dashVencimentos');
+  if(dv){
+    const amanha2=new Date(td+'T12:00:00');amanha2.setDate(amanha2.getDate()+1);
+    const amanhaStr2=amanha2.toISOString().split('T')[0];
+    const venc=getLancs().filter(l=>l.tipo==='despesa'&&l.status==='pendente'&&(l.data===td||l.data===amanhaStr2))
+      .sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+    if(venc.length){
+      dv.innerHTML=`<div class="card">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">💳 Vencimentos</div>
+        ${venc.map(v=>{
+          const hoje=v.data===td;
+          const cor=hoje?'var(--danger)':'var(--gold)';
+          return`<div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;margin-bottom:6px;background:var(--bg);border-left:4px solid ${cor}">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:13px">${v.desc||v.categoria||'—'}</div>
+              <div style="font-size:11px;color:var(--muted)">${v.categoria||''}</div>
+            </div>
+            <div style="font-weight:700;font-size:13px;color:${cor}">${fmt(v.valor)}</div>
+            <span class="badge ${hoje?'b-red':'b-warn'}">${hoje?'Hoje':'Amanhã'}</span>
+            <button class="btn btn-p btn-xs" onclick="pagarLanc('${v.id}')">Pagar</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+    } else dv.innerHTML='';
   }
   // Tarefas de hoje no dashboard
   const dth=$('dashTarefasHoje');
