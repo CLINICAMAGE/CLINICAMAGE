@@ -7422,8 +7422,9 @@ function marcarPago(id){
     if(pac){CPAC=pac;registrarPgtoOrc(l.orcId);return;}
   }
   // Despesas ou lançamentos sem orçamento → marcar pago direto
-  l.status='pago';saveLancs(a);syncLancToOrc(l);renderFin();renderDash();
+  l.status='pago';if(!l.dataPagamento)l.dataPagamento=today();saveLancs(a);syncLancToOrc(l);renderFin();renderDash();
 }
+function pagarLanc(id){marcarPago(id);}
 // Sincroniza status de lançamento de volta ao orçamento do paciente
 function syncLancToOrc(lanc){
   if(!lanc.orcId||!lanc.pacId)return;
