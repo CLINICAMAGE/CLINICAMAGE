@@ -6794,21 +6794,24 @@ function renderFinPac(){
   if(!CPAC)return;
   const orcs=CPAC.orcamentos||[];
   const tot=orcs.reduce((s,o)=>s+o.total,0);
-  const pago=orcs.reduce((s,o)=>s+(o.status==='pago'?o.total:o.status==='parcial'?o.entrada:0),0);
+  // Para cálculo de pago/pendente, usa o teto correto: liquidoClinica quando assumir taxa
+  const _limOrc=o=>(o.taxaOpt||'repassar')==='assumir'?(o.liquidoClinica||o.total):o.total;
+  const pago=orcs.reduce((s,o)=>s+(o.status==='pago'?_limOrc(o):o.status==='parcial'||o.status==='aceite'?o.entrada||0:0),0);
   if($('pfO'))$('pfO').textContent=fmt(tot);
   if($('pfP'))$('pfP').textContent=fmt(pago);
-  if($('pfPe'))$('pfPe').textContent=fmt(tot-pago);
+  if($('pfPe'))$('pfPe').textContent=fmt(Math.max(0,orcs.reduce((s,o)=>s+_limOrc(o),0)-pago));
   const tb=document.querySelector('#tFP tbody');if(!tb)return;
   if(!orcs.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">Nenhum orçamento</td></tr>';return}
   tb.innerHTML=[...orcs].reverse().map(o=>{
     const pg=o.status==='aceite'||o.status==='pago'?o.entrada||0:o.status==='parcial'?o.entrada:0;
-    const pend=o.total-(pg||0);
-    const badgeCls=o.status==='pago'||o.status==='aceite'?'b-green':o.status==='parcial'?'b-warn':o.status==='pendente'?'b-gray':'b-warn';
+    const badgeCls=o.status==='pago'?'b-green':o.status==='aceite'?'b-info':o.status==='parcial'?'b-warn':o.status==='pendente'?'b-gray':'b-warn';
     const badgeTxt=o.status==='pago'?'Quitado':o.status==='aceite'?'Aceito/Aberto':o.status==='parcial'?'Parcial':'Pendente';
     const hasItens=o.itens&&o.itens.length>1;
     const temTaxa=o.taxa>0;
     const totalCobrado=o.totalCobrado||o.total;
-    const pendDisplay=Math.max(0,totalCobrado-(pg||0));
+    // Teto correto para pendente: liquidoClinica quando clínica assume taxa
+    const limPend=(o.taxaOpt||'repassar')==='assumir'?(o.liquidoClinica||totalCobrado):totalCobrado;
+    const pendDisplay=Math.max(0,limPend-(pg||0));
     return`<tr>
     <td>${fmtD(o.data)}</td>
     <td>
@@ -6914,10 +6917,12 @@ function aceitarOrc(id){
   if(getLancs().some(x=>x.orcId===id)){alert('Este orçamento já foi lançado no financeiro.');return;}
   if(!confirm('Confirmar aceite do paciente e lançar no financeiro?'))return;
   const totalCobradoAceite=o.totalCobrado||o.total||0;
-  const valorPagoAgora=parseFloat(prompt(`Valor recebido agora (R$):\n(0 = nenhum pagamento hoje | ${totalCobradoAceite.toFixed(2)} = pago completo)`,totalCobradoAceite.toFixed(2)));
+  // Quando clínica assume taxa, o teto é o líquido (o que a clínica recebe no caixa)
+  const limiteAceite=(o.taxaOpt||'repassar')==='assumir'?(o.liquidoClinica||totalCobradoAceite):totalCobradoAceite;
+  const valorPagoAgora=parseFloat(prompt(`Valor recebido agora (R$):\n(0 = nenhum pagamento hoje | ${limiteAceite.toFixed(2)} = pago completo)`,limiteAceite.toFixed(2)));
   if(isNaN(valorPagoAgora)||valorPagoAgora<0){alert('Valor inválido.');return;}
-  o.entrada=Math.min(valorPagoAgora,totalCobradoAceite);
-  o.status=o.entrada>=totalCobradoAceite?'pago':'aceite';
+  o.entrada=Math.min(valorPagoAgora,limiteAceite);
+  o.status=o.entrada>=limiteAceite?'pago':'aceite';
   saveCPAC();
   const l=ls('lancamentos',[]);
   const totalBase=o.total||0;
