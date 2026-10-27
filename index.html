@@ -7134,18 +7134,34 @@ function renderRetornosAg(area){
   const procs=[...new Set(todos.map(r=>r.label||tipoLabel[r.tipo]||r.tipo).filter(Boolean))].sort();
   // Aplicar filtros
   let filtrados=todos.filter(r=>{
-    if(_retFiltro.status&&_retFiltro.status!=='todos'&&r.status!==_retFiltro.status)return false;
+    const atrasadoF=r.status==='pendente'&&r.dataRetorno<td;
+    const avencerF=r.status==='pendente'&&r.dataRetorno>=td;
+    if(_retFiltro.status==='vencido'&&!atrasadoF)return false;
+    if(_retFiltro.status==='avencer'&&!avencerF)return false;
+    if(_retFiltro.status==='pendente'&&r.status!=='pendente')return false;
+    if(_retFiltro.status==='dispensado'&&r.status!=='dispensado')return false;
+    if(_retFiltro.status==='todos'){}// sem filtro
     if(_retFiltro.proc){const lbl=r.label||tipoLabel[r.tipo]||r.tipo||'';if(!lbl.toLowerCase().includes(_retFiltro.proc.toLowerCase()))return false;}
     if(_retFiltro.dataIni&&r.dataRetorno<_retFiltro.dataIni)return false;
     if(_retFiltro.dataFim&&r.dataRetorno>_retFiltro.dataFim)return false;
     return true;
   }).sort((a,b)=>a.dataRetorno.localeCompare(b.dataRetorno));
+  const _whtRetorno=r=>{
+    const pac=getPacs().find(p=>p.id===r.pacId);
+    const tel=(pac?.tel||'').replace(/\D/g,'');
+    if(!tel){alert(`Paciente ${r.pacNome} não tem telefone cadastrado.`);return;}
+    const numero=tel.startsWith('55')?tel:'55'+tel;
+    const proc=r.label||tipoLabel[r.tipo]||r.tipo||'retorno';
+    const msg=encodeURIComponent(`Olá ${r.pacNome}! Passando para lembrar do seu retorno de ${proc}, previsto para ${fmtD(r.dataRetorno)}. Podemos confirmar? 😊`);
+    window.open(`https://wa.me/${numero}?text=${msg}`,'_blank');
+  };
+  window._whtRetorno=_whtRetorno;
   const renderRow=r=>{
     const atrasado=r.status==='pendente'&&r.dataRetorno<td;
-    const badge=r.status==='dispensado'?'<span class="badge b-gray">Dispensado</span>':atrasado?'<span class="badge b-red">Vencido</span>':r.dataRetorno===td?'<span class="badge b-warn">Hoje</span>':'<span class="badge b-teal">Pendente</span>';
+    const badge=r.status==='dispensado'?'<span class="badge b-gray">Dispensado</span>':atrasado?'<span class="badge b-red">Vencido</span>':r.dataRetorno===td?'<span class="badge b-warn">Hoje</span>':'<span class="badge b-teal">A vencer</span>';
     const acoes=r.status==='dispensado'
       ?`<button class="btn btn-o btn-xs" onclick="reativarRetorno('${r.id}')">Reativar</button><button class="btn btn-d btn-xs" onclick="excluirRetorno('${r.id}')">🗑</button>`
-      :`<button class="btn btn-p btn-xs" onclick="agendarRetorno('${r.id}')">📅 Agendar</button><button class="btn btn-o btn-xs" onclick="editarDataRetorno('${r.id}')">✏️ Data</button><button class="btn btn-o btn-xs" onclick="dispensarRetorno('${r.id}')">Dispensar</button>`;
+      :`<button class="btn btn-p btn-xs" onclick="agendarRetorno('${r.id}')">📅 Agendar</button><button class="btn btn-o btn-xs" onclick="editarDataRetorno('${r.id}')">✏️ Data</button><button class="btn btn-o btn-xs" onclick="_whtRetorno(${JSON.stringify({id:r.id,pacId:r.pacId,pacNome:r.pacNome,label:r.label,tipo:r.tipo,dataRetorno:r.dataRetorno})})">💬 WhatsApp</button><button class="btn btn-o btn-xs" onclick="dispensarRetorno('${r.id}')">Dispensar</button>`;
     return`<tr>
       <td>${fmtD(r.dataRetorno)}</td>
       <td style="font-weight:600">${r.pacNome}</td>
@@ -7161,7 +7177,9 @@ function renderRetornosAg(area){
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <select style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)"
             onchange="_retFiltro.status=this.value;renderAgenda()">
-            <option value="pendente" ${_retFiltro.status==='pendente'?'selected':''}>Status: Pendentes</option>
+            <option value="pendente" ${_retFiltro.status==='pendente'?'selected':''}>Status: Todos pendentes</option>
+            <option value="vencido" ${_retFiltro.status==='vencido'?'selected':''}>Status: Vencidos</option>
+            <option value="avencer" ${_retFiltro.status==='avencer'?'selected':''}>Status: A vencer</option>
             <option value="dispensado" ${_retFiltro.status==='dispensado'?'selected':''}>Status: Dispensados</option>
             <option value="todos" ${_retFiltro.status==='todos'?'selected':''}>Status: Todos</option>
           </select>
