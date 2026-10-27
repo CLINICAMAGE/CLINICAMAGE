@@ -7124,39 +7124,67 @@ function renderListaAg(area,ags){
     <td style="display:flex;gap:4px"><button class="btn btn-g btn-xs" onclick="whtApt('${a.id}')">📱</button><button class="btn btn-d btn-xs" onclick="delApt('${a.id}')">✕</button></td>
   </tr>`).join('')}</tbody></table></div></div>`;
 }
+let _retFiltro={proc:'',dataIni:'',dataFim:'',status:'pendente'};
 function renderRetornosAg(area){
   $('agPer').textContent='Retornos de Sessão';
   const td=today();
-  const todos=getRetornos().filter(r=>r.status==='pendente'||r.status==='dispensado');
-  const pendentes=todos.filter(r=>r.status==='pendente').sort((a,b)=>a.dataRetorno.localeCompare(b.dataRetorno));
-  const dispensados=todos.filter(r=>r.status==='dispensado').sort((a,b)=>b.dataRetorno.localeCompare(a.dataRetorno));
-  if(!pendentes.length&&!dispensados.length){
-    area.innerHTML='<div class="card"><div class="empty"><p>Nenhum retorno programado. Os retornos são criados automaticamente ao aceitar orçamentos de Toxina, Preenchimento ou Bioestimulador.</p></div></div>';return;
-  }
   const tipoLabel={toxina:'Toxina Botulínica',ah:'Preenchimento AH',bioest:'Bioestimulador'};
+  const todos=getRetornos();
+  // Coletar procedimentos únicos para o select
+  const procs=[...new Set(todos.map(r=>r.label||tipoLabel[r.tipo]||r.tipo).filter(Boolean))].sort();
+  // Aplicar filtros
+  let filtrados=todos.filter(r=>{
+    if(_retFiltro.status&&_retFiltro.status!=='todos'&&r.status!==_retFiltro.status)return false;
+    if(_retFiltro.proc){const lbl=r.label||tipoLabel[r.tipo]||r.tipo||'';if(!lbl.toLowerCase().includes(_retFiltro.proc.toLowerCase()))return false;}
+    if(_retFiltro.dataIni&&r.dataRetorno<_retFiltro.dataIni)return false;
+    if(_retFiltro.dataFim&&r.dataRetorno>_retFiltro.dataFim)return false;
+    return true;
+  }).sort((a,b)=>a.dataRetorno.localeCompare(b.dataRetorno));
   const renderRow=r=>{
-    const atrasado=r.dataRetorno<td;
-    const cor=atrasado?'var(--danger)':r.dataRetorno<=_addMeses(td,0)+15?'var(--gold)':'var(--teal)';
-    const hoje15=_addMeses(td.slice(0,7)+'-01',0);// unused, just for ref
-    const badge=atrasado?'<span class="badge b-red">Vencido</span>':r.dataRetorno===td?'<span class="badge b-warn">Hoje</span>':'';
+    const atrasado=r.status==='pendente'&&r.dataRetorno<td;
+    const badge=r.status==='dispensado'?'<span class="badge b-gray">Dispensado</span>':atrasado?'<span class="badge b-red">Vencido</span>':r.dataRetorno===td?'<span class="badge b-warn">Hoje</span>':'<span class="badge b-teal">Pendente</span>';
+    const acoes=r.status==='dispensado'
+      ?`<button class="btn btn-o btn-xs" onclick="reativarRetorno('${r.id}')">Reativar</button><button class="btn btn-d btn-xs" onclick="excluirRetorno('${r.id}')">🗑</button>`
+      :`<button class="btn btn-p btn-xs" onclick="agendarRetorno('${r.id}')">📅 Agendar</button><button class="btn btn-o btn-xs" onclick="editarDataRetorno('${r.id}')">✏️ Data</button><button class="btn btn-o btn-xs" onclick="dispensarRetorno('${r.id}')">Dispensar</button>`;
     return`<tr>
       <td>${fmtD(r.dataRetorno)}</td>
       <td style="font-weight:600">${r.pacNome}</td>
       <td>${r.label||tipoLabel[r.tipo]||r.tipo}</td>
-      <td>${badge}${atrasado?'':''}</td>
-      <td style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn btn-p btn-xs" onclick="agendarRetorno('${r.id}')">📅 Agendar</button>
-        <button class="btn btn-o btn-xs" onclick="editarDataRetorno('${r.id}')">✏️ Data</button>
-        <button class="btn btn-o btn-xs" onclick="dispensarRetorno('${r.id}')">Dispensar</button>
-      </td>
+      <td>${badge}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">${acoes}</td>
     </tr>`;
   };
   area.innerHTML=`
     <div class="card" style="margin-bottom:14px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">🔔 Retornos Pendentes (${pendentes.length})</div>
-      ${pendentes.length?`<div class="tw"><table><thead><tr><th>Data Prevista</th><th>Paciente</th><th>Procedimento</th><th>Status</th><th>Ações</th></tr></thead><tbody>${pendentes.map(renderRow).join('')}</tbody></table></div>`:'<p style="color:var(--muted);font-size:13px">Nenhum retorno pendente.</p>'}
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div style="font-weight:700;font-size:13px;color:var(--teal-d)">🔔 Retornos de Sessão</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)"
+            onchange="_retFiltro.status=this.value;renderAgenda()">
+            <option value="pendente" ${_retFiltro.status==='pendente'?'selected':''}>Status: Pendentes</option>
+            <option value="dispensado" ${_retFiltro.status==='dispensado'?'selected':''}>Status: Dispensados</option>
+            <option value="todos" ${_retFiltro.status==='todos'?'selected':''}>Status: Todos</option>
+          </select>
+          <select style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)"
+            onchange="_retFiltro.proc=this.value;renderAgenda()">
+            <option value="">Todos os procedimentos</option>
+            ${procs.map(p=>`<option value="${p}" ${_retFiltro.proc===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+          <div style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)">
+            De <input type="date" value="${_retFiltro.dataIni}" style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);margin:0 4px"
+              onchange="_retFiltro.dataIni=this.value;renderAgenda()">
+            até <input type="date" value="${_retFiltro.dataFim}" style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text);margin:0 4px"
+              onchange="_retFiltro.dataFim=this.value;renderAgenda()">
+            ${(_retFiltro.proc||_retFiltro.dataIni||_retFiltro.dataFim||_retFiltro.status!=='pendente')?`<button class="btn btn-o btn-xs" onclick="_retFiltro={proc:'',dataIni:'',dataFim:'',status:'pendente'};renderAgenda()">✕ Limpar</button>`:''}
+          </div>
+        </div>
+      </div>
+      ${filtrados.length
+        ?`<div style="font-size:12px;color:var(--muted);margin-bottom:8px">${filtrados.length} resultado(s)</div>
+          <div class="tw"><table><thead><tr><th>Data Prevista</th><th>Paciente</th><th>Procedimento</th><th>Status</th><th>Ações</th></tr></thead><tbody>${filtrados.map(renderRow).join('')}</tbody></table></div>
+          ${_retFiltro.status==='dispensado'?`<div style="margin-top:10px;text-align:right"><button class="btn btn-d btn-xs" onclick="excluirTodosDispensados()">🗑 Excluir todos dispensados</button></div>`:''}`
+        :`<div class="empty"><p>${todos.length?'Nenhum retorno encontrado para os filtros selecionados.':'Nenhum retorno programado. Os retornos são criados automaticamente ao aceitar orçamentos de Toxina, Preenchimento ou Bioestimulador.'}</p></div>`}
     </div>
-    ${dispensados.length?`<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-weight:700;font-size:13px;color:var(--muted)">Dispensados (${dispensados.length})</div><button class="btn btn-d btn-xs" onclick="excluirTodosDispensados()">🗑 Excluir todos</button></div><div class="tw"><table><thead><tr><th>Data</th><th>Paciente</th><th>Procedimento</th><th></th><th>Ações</th></tr></thead><tbody>${dispensados.map(r=>`<tr><td>${fmtD(r.dataRetorno)}</td><td>${r.pacNome}</td><td>${r.label||r.tipo}</td><td><span class="badge b-gray">Dispensado</span></td><td style="display:flex;gap:4px"><button class="btn btn-o btn-xs" onclick="reativarRetorno('${r.id}')">Reativar</button><button class="btn btn-d btn-xs" onclick="excluirRetorno('${r.id}')">🗑</button></td></tr>`).join('')}</tbody></table></div></div>`:''}
   `;
 }
 function _recalcularRetornosOrc(orcId,novaData){
