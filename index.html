@@ -3104,24 +3104,37 @@ function renderCfg(){
           <strong>Repassar taxa:</strong> cliente paga serviço + taxa → você recebe o valor dos serviços <em>cheio</em>.<br>
           <strong>Assumir taxa:</strong> cliente paga o valor dos serviços → você recebe o <em>líquido</em> (serviço − taxa).
         </div>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          ${[
-            {id:'txDeb',label:'Débito à vista',def:1.5,note:'você recebe cheio ou líquido no dia'},
-            {id:'txCred1',label:'Crédito à vista',def:2.5,note:'antecipado — recebe hoje/amanhã'},
-            {id:'txCred2',label:'Crédito 2x',def:3.0,note:'antecipado — recebe hoje/amanhã'},
-            {id:'txCred3',label:'Crédito 3x–6x',def:3.5,note:'antecipado — recebe hoje/amanhã'},
-            {id:'txCred7',label:'Crédito 7x–12x',def:4.5,note:'antecipado — recebe hoje/amanhã'},
-            {id:'txPix',label:'PIX',def:0,note:'instantâneo, normalmente 0%'},
-          ].map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:6px;background:var(--bg)">
-            <div style="flex:1">
-              <label style="font-size:13px;display:block">${t.label}</label>
-              <span style="font-size:10px;color:var(--muted)">${t.note}</span>
-            </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:6px;background:var(--bg)">
+            <div style="flex:1"><label style="font-size:13px;display:block">Débito à vista</label><span style="font-size:10px;color:var(--muted)">recebe no dia</span></div>
             <div style="display:flex;align-items:center;gap:6px">
-              <input type="number" id="${t.id}" value="${cfg[t.id]!==undefined?cfg[t.id]:t.def}" step="0.01" min="0" max="20" style="width:90px;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;outline:none;text-align:right">
+              <input type="number" id="txDeb" value="${cfg.txDeb!==undefined?cfg.txDeb:1.5}" step="0.01" min="0" max="20" style="width:80px;border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;outline:none;text-align:right">
               <span style="font-size:12px;color:var(--muted)">%</span>
             </div>
-          </div>`).join('')}
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;border-radius:6px;background:var(--bg)">
+            <div style="flex:1"><label style="font-size:13px;display:block">PIX</label><span style="font-size:10px;color:var(--muted)">instantâneo, normalmente 0%</span></div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <input type="number" id="txPix" value="${cfg.txPix!==undefined?cfg.txPix:0}" step="0.01" min="0" max="20" style="width:80px;border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;outline:none;text-align:right">
+              <span style="font-size:12px;color:var(--muted)">%</span>
+            </div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-top:4px">Crédito — por parcela</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            ${[1,2,3,4,5,6,7,8,9,10,11,12].map(p=>{
+              const key=`txCred${p}`;
+              // Fallback para valores antigos agrupados se individual não foi salvo ainda
+              const legDef=p<=1?2.5:p<=2?3.0:p<=6?3.5:4.5;
+              const val=cfg[key]!==undefined?cfg[key]:legDef;
+              return`<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 10px;border-radius:6px;background:var(--bg)">
+                <label style="font-size:13px;font-weight:600;min-width:28px">${p}x</label>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <input type="number" id="${key}" value="${val}" step="0.01" min="0" max="20" style="width:72px;border:1.5px solid var(--border);border-radius:6px;padding:5px 6px;font-size:13px;outline:none;text-align:right">
+                  <span style="font-size:12px;color:var(--muted)">%</span>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
         </div>
         <button class="btn btn-p" style="margin-top:16px;width:100%" onclick="salvarConfig()">💾 Salvar Taxas</button>
       </div>
@@ -3132,10 +3145,18 @@ function renderCfg(){
           <div class="ff"><label>Modalidade</label>
             <select id="simMod" onchange="simularTaxa()">
               <option value="txDeb">Débito à vista</option>
-              <option value="txCred1">Crédito à vista</option>
+              <option value="txCred1">Crédito 1x (à vista)</option>
               <option value="txCred2">Crédito 2x</option>
-              <option value="txCred3">Crédito 3x–6x</option>
-              <option value="txCred7">Crédito 7x–12x</option>
+              <option value="txCred3">Crédito 3x</option>
+              <option value="txCred4">Crédito 4x</option>
+              <option value="txCred5">Crédito 5x</option>
+              <option value="txCred6">Crédito 6x</option>
+              <option value="txCred7">Crédito 7x</option>
+              <option value="txCred8">Crédito 8x</option>
+              <option value="txCred9">Crédito 9x</option>
+              <option value="txCred10">Crédito 10x</option>
+              <option value="txCred11">Crédito 11x</option>
+              <option value="txCred12">Crédito 12x</option>
               <option value="txPix">PIX</option>
             </select>
           </div>
@@ -3207,7 +3228,7 @@ function renderCfg(){
 
 function salvarConfig(){
   const cfg=getCfg();
-  ['txDeb','txCred1','txCred2','txCred3','txCred7','txPix'].forEach(id=>{
+  ['txDeb','txPix','txCred1','txCred2','txCred3','txCred4','txCred5','txCred6','txCred7','txCred8','txCred9','txCred10','txCred11','txCred12'].forEach(id=>{
     const el=$(id);if(el)cfg[id]=parseFloat(el.value)||0;
   });
   ['nfCodServ','nfDescServ','nfISS','nfNumIni'].forEach(id=>{
@@ -3253,7 +3274,10 @@ function getTaxaCartao(pgto,parcs){
   const cfg=getCfg();
   if(pgto==='Cartão Débito')return cfg.txDeb||1.5;
   if(pgto==='Cartão Crédito'){
-    const p=parseInt(parcs)||1;
+    const p=Math.min(12,Math.max(1,parseInt(parcs)||1));
+    const key=`txCred${p}`;
+    if(cfg[key]!==undefined)return cfg[key];
+    // fallback para configuração antiga agrupada
     if(p<=1)return cfg.txCred1||2.5;
     if(p<=2)return cfg.txCred2||3.0;
     if(p<=6)return cfg.txCred3||3.5;
