@@ -474,6 +474,9 @@ tr:hover td{background:var(--teal-p)}
       <div class="ni" data-p="relatorios" onclick="go('relatorios')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Relatórios
       </div>
+      <div class="ni" data-p="comercial" onclick="go('comercial')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Comercial
+      </div>
       <div class="nav-sec" id="navAdm">Administração</div>
       <div class="ni" data-p="procedimentos" onclick="go('procedimentos')" id="navProc">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -563,6 +566,7 @@ tr:hover td{background:var(--teal-p)}
         <div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">Últimos Lançamentos</div><div id="dashUL"></div></div>
         <div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">Funil de Leads</div><div id="dashCRM"></div></div>
       </div>
+      <div id="dashMeta" style="margin-top:14px"></div>
       <div id="dashAniversarios" style="margin-top:14px"></div>
       <div id="dashVencimentos" style="margin-top:14px"></div>
       <div id="dashRetornos" style="margin-top:14px"></div>
@@ -939,6 +943,17 @@ tr:hover td{background:var(--teal-p)}
         </div>
         <div class="kanban" id="kanban"></div>
       </div>
+    </div>
+
+    <!-- COMERCIAL -->
+    <div class="page" id="page-comercial">
+      <div class="ph no-print">
+        <div class="ph-l"><h1>Comercial</h1><p>Metas, mix de procedimentos e acompanhamento</p></div>
+      </div>
+      <div class="stabs no-print">
+        <div class="stab on" onclick="comercialTab('metas')">🎯 Metas</div>
+      </div>
+      <div id="comercialArea"></div>
     </div>
 
     <!-- TAREFAS -->
@@ -2053,9 +2068,10 @@ const _SB_URL='https://hlgwlfzcucysywrhreau.supabase.co';
 const _SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsZ3dsZnpjdWN5c3l3cmhyZWF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODk1NjIsImV4cCI6MjA5Njc2NTU2Mn0.HGQXsmS6HnalzdActcSaRF-WSwKm7N4c548tn2d65t4';
 const _sb=supabase.createClient(_SB_URL,_SB_KEY);
 const _db={};
-const _KEYS=['pacientes','lancamentos','agendamentos','leads','procedimentos','estoqueHF','equipe','recorrentes','centrosCusto','mktInvest','npsRespostas','auditLog','users','finConfig','sysConfig','identidade','clinicaInfo','reciboCount','tarefas','retornos'];
+const _KEYS=['pacientes','lancamentos','agendamentos','leads','procedimentos','estoqueHF','equipe','recorrentes','centrosCusto','mktInvest','npsRespostas','auditLog','users','finConfig','sysConfig','identidade','clinicaInfo','reciboCount','tarefas','retornos','metas','metaMix'];
 const ls=(k,d=[])=>{const v=_db['c_'+k];return v!==undefined?v:(()=>{try{return JSON.parse(localStorage.getItem('c_'+k))??d}catch{return d}})()};
-const ss=(k,v)=>{_db['c_'+k]=v;localStorage.setItem('c_'+k,JSON.stringify(v));_sb.from('config').upsert({chave:'c_'+k,valor:v,updated_at:new Date().toISOString()}).then(({error})=>{if(error)console.warn('[sync]',k,error.message)});};
+const _ssSaveTs={};
+const ss=(k,v)=>{_db['c_'+k]=v;localStorage.setItem('c_'+k,JSON.stringify(v));_ssSaveTs['c_'+k]=Date.now();_sb.from('config').upsert({chave:'c_'+k,valor:v,updated_at:new Date().toISOString()}).then(({error})=>{if(error)console.warn('[sync]',k,error.message)});};
 const lss=k=>localStorage.getItem('c_'+k)||'';
 const sss=(k,v)=>localStorage.setItem('c_'+k,v);
 const fmt=v=>'R$ '+parseFloat(v||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');
@@ -2240,8 +2256,16 @@ window.addEventListener('DOMContentLoaded',async()=>{
     _sb.channel('cfg-sync')
       .on('postgres_changes',{event:'*',schema:'public',table:'config'},p=>{
         const r=p.new;if(!r?.chave)return;
+        // Ignorar echo do próprio save (evita race condition async)
+        const age=Date.now()-(_ssSaveTs[r.chave]||0);
+        if(age<4000)return;
         _db[r.chave]=r.valor;
         localStorage.setItem(r.chave,JSON.stringify(r.valor));
+        // Manter CPAC sincronizado quando outro dispositivo atualiza pacientes
+        if(r.chave==='c_pacientes'&&typeof CPAC!=='undefined'&&CPAC){
+          const fresh=(r.valor||[]).find(p=>p.id===CPAC.id);
+          if(fresh)CPAC=fresh;
+        }
         if(SESS)try{renderAll();}catch(e){}
       }).subscribe();
   }catch(e){
@@ -2257,7 +2281,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
 // ══ NAVIGATION ══
 let CURR='dashboard';
 function go(p){closeMobMenu();
-  const publicPages=['procedimentos','estoque','equipe','clinica','dre','config','backup','identidade','auditoria','retencao','recall','manual'];if(SESS?.user.role!=='master'&&!(SESS?.user.perms||[]).includes(p)&&!publicPages.includes(p)){alert('Sem permissão para este módulo.');return}
+  const publicPages=['procedimentos','estoque','equipe','clinica','dre','config','backup','identidade','auditoria','retencao','recall','manual','comercial'];if(SESS?.user.role!=='master'&&!(SESS?.user.perms||[]).includes(p)&&!publicPages.includes(p)){alert('Sem permissão para este módulo.');return}
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
   $('page-'+p)?.classList.add('on');
   document.querySelectorAll('.ni[data-p]').forEach(ni=>ni.classList.toggle('on',ni.dataset.p===p));
@@ -2267,6 +2291,7 @@ function go(p){closeMobMenu();
   if(p==='recall'){renderRecall();const inp=$('recallMesesInput');if(inp)inp.value=getCfg().recallMeses||6;}
   if(p==='config')renderCfg();
   if(p==='backup')renderBackupStats();
+  if(p==='comercial')renderComercial();
   if(p==='identidade')renderIdentidade();
   if(p==='auditoria')renderAuditLog();
   if(p==='retencao')renderRetencao();
@@ -2275,7 +2300,7 @@ function go(p){closeMobMenu();
 }
 function renderAll(){
   renderDash();renderAgenda();renderPacList();renderCRM();renderFin();renderRel();renderUsers();renderTermoPacSel();renderProc();renderEstoque();renderEquipe();renderDRE();renderBackupStats();renderCfg();renderTarefas();
-  applyTheme();renderAniversarios();
+  applyTheme();renderAniversarios();_renderDashMeta();
 }
 
 // ══ E1: ANIVERSÁRIOS ══
@@ -9948,6 +9973,338 @@ function renderDash(){
         <span class="badge ${st.c}">${n}</span>
       </div>
     </div>`}).join('');
+}
+
+// ══ COMERCIAL — F1: METAS ══
+const getMetas=()=>ls('metas',[]);
+const saveMetas=d=>ss('metas',d);
+const getMetaMix=()=>ls('metaMix',[]);
+const saveMetaMix=d=>ss('metaMix',d);
+
+function _mesAtualStr(){const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
+function _getMeta(mes){return getMetas().find(m=>m.mes===mes)||{mes,metaHOF:0,metaOdonto:0,diasAtend:20,horasAtenDia:8,semanas:4,txFechamento:40,txComparecimento:80,txAgendamento:30};}
+function _getMetaMix(mes,area){
+  const mix=getMetaMix().filter(m=>m.mes===mes&&m.area===area);
+  if(mix.length)return mix;
+  if(area==='hf')return[
+    {mes,area:'hf',proc:'Full Face (toxina + preenchedor)',pct:35,ticket:6000,horasPorPac:2.5},
+    {mes,area:'hf',proc:'Toxina Botulínica',pct:25,ticket:1200,horasPorPac:1.0},
+    {mes,area:'hf',proc:'Preenchimento AH',pct:25,ticket:1500,horasPorPac:1.5},
+    {mes,area:'hf',proc:'Bioestimulador de Colágeno',pct:15,ticket:2000,horasPorPac:1.5},
+  ];
+  return[
+    {mes,area:'odonto',proc:'Odontologia Estética',pct:50,ticket:3000,horasPorPac:6.0},
+    {mes,area:'odonto',proc:'Clínica Geral / Prevenção',pct:50,ticket:400,horasPorPac:2.0},
+  ];
+}
+
+let _CCOMERC='metas';
+function comercialTab(t){_CCOMERC=t;document.querySelectorAll('#page-comercial .stab').forEach((el,i)=>el.classList.toggle('on',['metas'][i]===t));renderComercial();}
+function renderComercial(){const area=$('comercialArea');if(!area)return;if(_CCOMERC==='metas')renderMetasComercial(area);}
+
+function _calcMix(mixArr,metaVal){
+  const totPacs=mixArr.reduce((s,r)=>s+Math.ceil((metaVal*(parseFloat(r.pct)||0)/100)/(parseFloat(r.ticket)||1)),0);
+  const hNec=mixArr.reduce((s,r)=>s+Math.ceil((metaVal*(parseFloat(r.pct)||0)/100)/(parseFloat(r.ticket)||1))*(parseFloat(r.horasPorPac)||0),0);
+  const fatSe=mixArr.reduce((s,r)=>s+Math.ceil((metaVal*(parseFloat(r.pct)||0)/100)/(parseFloat(r.ticket)||1))*(parseFloat(r.ticket)||0),0);
+  const somaP=mixArr.reduce((s,r)=>s+(parseFloat(r.pct)||0),0);
+  return{totPacs,hNec,fatSe,somaP};
+}
+
+function _mixTable(mix,metaVal,area,isMaster){
+  const c=_calcMix(mix,metaVal);
+  const cols=isMaster?8:7;
+  return`<div class="tw"><table>
+    <thead><tr>
+      <th>Procedimento</th>
+      <th style="text-align:right">% da meta</th>
+      <th style="text-align:right">Ticket médio</th>
+      <th style="text-align:right">Horas/pac</th>
+      <th style="text-align:right">Fat. alvo</th>
+      <th style="text-align:right">Pac. fechar</th>
+      <th style="text-align:right">Horas nec.</th>
+      ${isMaster?'<th></th>':''}
+    </tr></thead>
+    <tbody id="mixTbody_${area}">
+      ${mix.map((r,i)=>{
+        const fatAlvo=metaVal*(parseFloat(r.pct)||0)/100;
+        const pacs=Math.ceil(fatAlvo/(parseFloat(r.ticket)||1));
+        const horas=pacs*(parseFloat(r.horasPorPac)||0);
+        return`<tr>
+          <td><input type="text" value="${r.proc}" ${!isMaster?'disabled':''} style="width:100%;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--card);color:var(--text)"></td>
+          <td><input type="number" value="${r.pct}" step="1" min="0" max="100" ${!isMaster?'disabled':''} style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)" oninput="atualizarResumoMix('${area}')"></td>
+          <td><input type="number" value="${r.ticket}" step="100" min="0" ${!isMaster?'disabled':''} style="width:80px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)"></td>
+          <td><input type="number" value="${r.horasPorPac}" step="0.5" min="0" ${!isMaster?'disabled':''} style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)"></td>
+          <td style="text-align:right;font-size:12px;color:var(--muted)">${fmt(fatAlvo)}</td>
+          <td style="text-align:right;font-size:12px;font-weight:700">${pacs}</td>
+          <td style="text-align:right;font-size:12px;color:var(--muted)">${horas.toFixed(1)}h</td>
+          ${isMaster?`<td><button class="btn btn-d btn-xs" onclick="this.closest('tr').remove()">🗑</button></td>`:''}
+        </tr>`;
+      }).join('')}
+    </tbody>
+    <tfoot><tr style="font-weight:700;background:var(--bg)">
+      <td>Total</td>
+      <td id="mixSoma_${area}" style="text-align:right;color:${Math.abs(c.somaP-100)>0.01?'var(--danger)':'var(--success)'}">${c.somaP.toFixed(1)}%</td>
+      <td></td><td></td>
+      <td style="text-align:right">${fmt(c.fatSe)}</td>
+      <td style="text-align:right">${c.totPacs}</td>
+      <td style="text-align:right">${c.hNec.toFixed(1)}h</td>
+      ${isMaster?'<td></td>':''}
+    </tr></tfoot>
+  </table></div>`;
+}
+
+function renderMetasComercial(area){
+  const isMaster=SESS?.user?.role==='master';
+  const mes=_mesAtualStr();
+  const meses=[];for(let i=-2;i<=3;i++){const d=new Date();d.setMonth(d.getMonth()+i);meses.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);}
+  const selMes=area.querySelector('#comMetaMes')?.value||mes;
+  const meta=_getMeta(selMes||mes);
+  const metaTotal=(meta.metaHOF||0)+(meta.metaOdonto||0);
+  const mixHF=_getMetaMix(selMes||mes,'hf');
+  const mixOdonto=_getMetaMix(selMes||mes,'odonto');
+  const cHF=_calcMix(mixHF,meta.metaHOF||0);
+  const cOd=_calcMix(mixOdonto,meta.metaOdonto||0);
+  const hDisp=(meta.diasAtend||0)*(meta.horasAtenDia||0);
+  const hNecTotal=cHF.hNec+cOd.hNec;
+  const ocup=hDisp>0?hNecTotal/hDisp:0;
+  const totPacsTotal=cHF.totPacs+cOd.totPacs;
+  const ticketMedNec=totPacsTotal>0?metaTotal/totPacsTotal:0;
+  const fatPorDia=meta.diasAtend>0?metaTotal/meta.diasAtend:0;
+  const pacsPoSem=meta.semanas>0?totPacsTotal/meta.semanas:0;
+
+  const alertaHF=Math.abs(cHF.somaP-100)>0.01&&(meta.metaHOF||0)>0?`<div style="background:#fff3cd;border:1px solid var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;color:#856404;margin-bottom:8px">⚠️ Mix HOF soma ${cHF.somaP.toFixed(1)}% — ajuste para 100%.</div>`:'';
+  const alertaOd=Math.abs(cOd.somaP-100)>0.01&&(meta.metaOdonto||0)>0?`<div style="background:#fff3cd;border:1px solid var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;color:#856404;margin-bottom:8px">⚠️ Mix Odonto soma ${cOd.somaP.toFixed(1)}% — ajuste para 100%.</div>`:'';
+  const alertaOcup=ocup>1?`<div style="background:#fde8e8;border:1px solid var(--danger);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--danger);margin-bottom:12px">🚨 Agenda não comporta esta meta: suba o ticket, abra mais dias ou reduza horas por paciente.</div>`:ocup>0.85?`<div style="background:#fff3cd;border:1px solid var(--warn);border-radius:8px;padding:10px 14px;font-size:13px;color:#856404;margin-bottom:12px">⚠️ Agenda quase cheia (${Math.round(ocup*100)}%): priorize procedimentos de ticket alto.</div>`:'';
+
+  const inputStyle=(en)=>`border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;text-align:right;outline:none;background:${en?'var(--card)':'var(--bg)'};color:var(--text);width:120px`;
+
+  area.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <label style="font-size:13px;font-weight:600">Mês de referência:</label>
+      <select id="comMetaMes" style="font-size:13px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--card);color:var(--text)" onchange="renderComercial()">
+        ${meses.map(m=>`<option value="${m}" ${(selMes||mes)===m?'selected':''}>${m}</option>`).join('')}
+      </select>
+    </div>
+    ${alertaOcup}
+
+    <!-- Metas por área + parâmetros -->
+    <div class="g2" style="margin-bottom:16px">
+      <div class="card">
+        <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">🎯 Metas e Parâmetros</div>
+        ${!isMaster?'<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Visualização — somente master pode editar.</div>':''}
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--bg);border-left:4px solid var(--teal)">
+            <label style="font-size:13px;font-weight:600">✨ Meta HOF (R$)</label>
+            <input type="number" id="cmMetaHOF" value="${meta.metaHOF||0}" step="1000" ${!isMaster?'disabled':''} style="${inputStyle(isMaster)}">
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--bg);border-left:4px solid var(--info)">
+            <label style="font-size:13px;font-weight:600">🦷 Meta Odontologia (R$)</label>
+            <input type="number" id="cmMetaOdonto" value="${meta.metaOdonto||0}" step="1000" ${!isMaster?'disabled':''} style="${inputStyle(isMaster)}" oninput="atualizarMetaTotal()">
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--teal-p);border-left:4px solid var(--teal-d)">
+            <label style="font-size:13px;font-weight:700;color:var(--teal-d)">📊 Meta Total</label>
+            <span id="cmMetaTotal" style="font-weight:700;font-size:16px;color:var(--teal-d)">${fmt(metaTotal)}</span>
+          </div>
+          <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+          ${[
+            {id:'cmDias',label:'Dias de atendimento no mês',val:meta.diasAtend,step:1},
+            {id:'cmHoras',label:'Horas de atendimento por dia',val:meta.horasAtenDia,step:0.5},
+            {id:'cmSemanas',label:'Semanas de atendimento',val:meta.semanas,step:1},
+            {id:'cmTxFech',label:'Taxa de fechamento (%)',val:meta.txFechamento,step:1},
+            {id:'cmTxComp',label:'Taxa de comparecimento (%)',val:meta.txComparecimento,step:1},
+            {id:'cmTxAgend',label:'Taxa de agendamento (%)',val:meta.txAgendamento,step:1},
+          ].map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:6px;background:var(--bg)">
+            <label style="font-size:13px;flex:1">${f.label}</label>
+            <input type="number" id="${f.id}" value="${f.val}" step="${f.step}" ${!isMaster?'disabled':''} style="${inputStyle(isMaster)}">
+          </div>`).join('')}
+        </div>
+        ${isMaster?`<button class="btn btn-p" style="width:100%;margin-top:14px" onclick="salvarMeta()">💾 Salvar Parâmetros</button>`:''}
+      </div>
+
+      <!-- Resumo calculado -->
+      <div class="card">
+        <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">📊 Resumo Calculado</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          ${[
+            {label:'Meta Total',val:fmt(metaTotal),cor:'var(--teal-d)'},
+            {label:'Pacientes a fechar (total)',val:totPacsTotal+' pac.'},
+            {label:'  → HOF',val:cHF.totPacs+' pac.',small:true},
+            {label:'  → Odonto',val:cOd.totPacs+' pac.',small:true},
+            {label:'Ticket médio necessário',val:fmt(ticketMedNec)},
+            {label:'Faturamento por dia',val:fmt(fatPorDia)},
+            {label:'Pacientes por semana',val:pacsPoSem.toFixed(1)+' pac.'},
+            {label:'Horas disponíveis',val:hDisp+'h'},
+            {label:'Horas necessárias',val:hNecTotal.toFixed(1)+'h'},
+            {label:'Ocupação da agenda',val:Math.round(ocup*100)+'%',cor:ocup>1?'var(--danger)':ocup>0.85?'var(--warn)':'var(--success)'},
+          ].map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:${r.small?'3px 10px':'6px 10px'};border-radius:6px;background:${r.small?'transparent':'var(--bg)'}">
+            <span style="font-size:${r.small?'11':'12'}px;color:var(--muted)">${r.label}</span>
+            <span style="font-weight:700;font-size:${r.small?'11':'13'}px;color:${r.cor||'var(--text)'}">${r.val}</span>
+          </div>`).join('')}
+          <div style="padding:10px;border-radius:8px;text-align:center;font-weight:700;font-size:13px;margin-top:4px;background:${ocup>1?'#fde8e8':ocup>0.85?'#fff3cd':'#d4edda'};color:${ocup>1?'var(--danger)':ocup>0.85?'#856404':'var(--success)'}">
+            ${ocup>1?'🚨 Meta não cabe na agenda':ocup>0.85?'⚠️ Agenda quase cheia':'✅ Meta cabe na agenda'}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mix HOF -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="font-weight:700;font-size:14px;color:var(--teal-d)">✨ Mix HOF — ${fmt(meta.metaHOF||0)}</div>
+        ${isMaster?`<div style="display:flex;gap:8px">
+          <button class="btn btn-o btn-xs" onclick="addLinhaMix('hf')">+ Linha</button>
+          <button class="btn btn-p btn-xs" onclick="salvarMix('hf')">💾 Salvar</button>
+        </div>`:''}
+      </div>
+      ${alertaHF}
+      ${_mixTable(mixHF,meta.metaHOF||0,'hf',isMaster)}
+    </div>
+
+    <!-- Mix Odontologia -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div style="font-weight:700;font-size:14px;color:var(--teal-d)">🦷 Mix Odontologia — ${fmt(meta.metaOdonto||0)}</div>
+        ${isMaster?`<div style="display:flex;gap:8px">
+          <button class="btn btn-o btn-xs" onclick="addLinhaMix('odonto')">+ Linha</button>
+          <button class="btn btn-p btn-xs" onclick="salvarMix('odonto')">💾 Salvar</button>
+        </div>`:''}
+      </div>
+      ${alertaOd}
+      ${_mixTable(mixOdonto,meta.metaOdonto||0,'odonto',isMaster)}
+    </div>
+  `;
+}
+
+function atualizarMetaTotal(){
+  const hof=parseFloat($('cmMetaHOF')?.value)||0;
+  const od=parseFloat($('cmMetaOdonto')?.value)||0;
+  const el=$('cmMetaTotal');if(el)el.textContent=fmt(hof+od);
+}
+
+function _getMesComercial(){return $('comMetaMes')?.value||_mesAtualStr();}
+
+function salvarMeta(){
+  const mes=_getMesComercial();
+  const meta={mes,
+    metaHOF:parseFloat($('cmMetaHOF')?.value)||0,
+    metaOdonto:parseFloat($('cmMetaOdonto')?.value)||0,
+    diasAtend:parseFloat($('cmDias')?.value)||0,
+    horasAtenDia:parseFloat($('cmHoras')?.value)||0,
+    semanas:parseFloat($('cmSemanas')?.value)||0,
+    txFechamento:parseFloat($('cmTxFech')?.value)||0,
+    txComparecimento:parseFloat($('cmTxComp')?.value)||0,
+    txAgendamento:parseFloat($('cmTxAgend')?.value)||0,
+  };
+  const arr=getMetas().filter(m=>m.mes!==mes);
+  arr.push(meta);saveMetas(arr);
+  auditLog('meta_salva','metas',mes,`Meta HOF ${fmt(meta.metaHOF)} + Odonto ${fmt(meta.metaOdonto)} salva para ${mes}`);
+  renderComercial();
+}
+
+function salvarMix(area){
+  const mes=_getMesComercial();
+  const tbody=$(`mixTbody_${area}`);if(!tbody)return;
+  const mix=[...tbody.querySelectorAll('tr')].map(tr=>{
+    const inputs=tr.querySelectorAll('input');
+    return{mes,area,proc:inputs[0]?.value||'',pct:parseFloat(inputs[1]?.value)||0,ticket:parseFloat(inputs[2]?.value)||0,horasPorPac:parseFloat(inputs[3]?.value)||0};
+  }).filter(r=>r.proc);
+  const soma=mix.reduce((s,r)=>s+r.pct,0);
+  if(Math.abs(soma-100)>0.01){alert(`O mix ${area==='hf'?'HOF':'Odonto'} soma ${soma.toFixed(1)}%. Ajuste para somar 100% antes de salvar.`);return;}
+  const arr=getMetaMix().filter(m=>!(m.mes===mes&&m.area===area));
+  arr.push(...mix);saveMetaMix(arr);
+  auditLog('mix_salvo','metaMix',mes,`Mix ${area} com ${mix.length} procedimentos salvo para ${mes}`);
+  renderComercial();
+}
+
+function addLinhaMix(area){
+  const tbody=$(`mixTbody_${area}`);if(!tbody)return;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td><input type="text" placeholder="Procedimento" style="width:100%;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--card);color:var(--text)"></td>
+    <td><input type="number" value="0" step="1" min="0" max="100" style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)" oninput="atualizarResumoMix('${area}')"></td>
+    <td><input type="number" value="0" step="100" min="0" style="width:80px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)"></td>
+    <td><input type="number" value="1" step="0.5" min="0" style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)"></td>
+    <td colspan="3" style="font-size:11px;color:var(--muted)">salve para calcular</td>
+    <td><button class="btn btn-d btn-xs" onclick="this.closest('tr').remove()">🗑</button></td>`;
+  tbody.appendChild(tr);
+}
+
+function atualizarResumoMix(area){
+  const tbody=$(`mixTbody_${area}`);if(!tbody)return;
+  const soma=[...tbody.querySelectorAll('tr')].reduce((s,tr)=>s+(parseFloat(tr.querySelectorAll('input')[1]?.value)||0),0);
+  const el=$(`mixSoma_${area}`);
+  if(el){el.textContent=soma.toFixed(1)+'%';el.style.color=Math.abs(soma-100)>0.01?'var(--danger)':'var(--success)';}
+}
+
+// ── Card de meta no dashboard ──
+function _renderDashMeta(){
+  const dm=$('dashMeta');if(!dm)return;
+  const mes=_mesAtualStr();
+  const meta=_getMeta(mes);
+  const metaTotal=(meta.metaHOF||0)+(meta.metaOdonto||0);
+  if(!metaTotal){dm.innerHTML='';return;}
+  const now=new Date();
+  const diasNoMes=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const pctMesDecorrido=now.getDate()/diasNoMes;
+  const lancs=getLancs().filter(l=>l.tipo==='receita'&&l.status==='pago'&&(l.data||'').startsWith(mes));
+  // Realizado total
+  const realizado=lancs.reduce((s,l)=>s+l.valor,0);
+  // HOF vs Odonto: identificar pelo procedimento via catálogo
+  const procs=ls('procedimentos',[]);
+  const procEsp={};procs.forEach(p=>{if(p.nome)procEsp[p.nome.toLowerCase()]=p.esp||'ambos';});
+  const _espLanc=l=>{const e=procEsp[(l.proc||l.desc||'').toLowerCase()];return e||'ambos';};
+  const realizadoHOF=lancs.filter(l=>{const e=_espLanc(l);return e==='hf'||e==='ambos';}).reduce((s,l)=>s+l.valor,0);
+  const realizadoOd=lancs.filter(l=>{const e=_espLanc(l);return e==='odonto'||e==='ambos';}).reduce((s,l)=>s+l.valor,0);
+  const fechamentos=getPacs().flatMap(p=>(p.orcamentos||[]).filter(o=>(o.status==='aceite'||o.status==='pago'||o.status==='parcial')&&(o.data||'').startsWith(mes))).length;
+  const ticketReal=fechamentos>0?realizado/fechamentos:0;
+  const pctAtingido=metaTotal>0?realizado/metaTotal:0;
+  const diasPassados=Math.max(1,now.getDate());
+  const projecao=meta.diasAtend>0?(realizado/diasPassados)*meta.diasAtend:0;
+  const diff=pctAtingido-pctMesDecorrido;
+  const corGeral=diff>=0?'var(--success)':diff>=-0.1?'var(--warn)':'var(--danger)';
+  const sinal=diff>=0?'🟢':diff>=-0.1?'🟡':'🔴';
+  const pBar=Math.min(100,Math.round(pctAtingido*100));
+  const pBarHOF=meta.metaHOF>0?Math.min(100,Math.round(realizadoHOF/meta.metaHOF*100)):0;
+  const pBarOd=meta.metaOdonto>0?Math.min(100,Math.round(realizadoOd/meta.metaOdonto*100)):0;
+
+  dm.innerHTML=`<div class="card" style="cursor:pointer" onclick="go('comercial')">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-weight:700;font-size:13px;color:var(--teal-d)">🎯 Meta do Mês</div>
+      <span style="font-size:18px">${sinal}</span>
+    </div>
+    <!-- Barra total -->
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="font-size:11px;font-weight:600">Total</span>
+      <span style="font-size:11px;color:var(--muted)">${fmt(realizado)} / ${fmt(metaTotal)}</span>
+    </div>
+    <div style="background:var(--border);border-radius:6px;height:8px;margin-bottom:10px">
+      <div style="width:${pBar}%;background:${corGeral};height:8px;border-radius:6px;transition:width .4s"></div>
+    </div>
+    ${meta.metaHOF>0?`<!-- Barra HOF -->
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+      <span style="font-size:11px;color:var(--muted)">✨ HOF</span>
+      <span style="font-size:11px;color:var(--muted)">${pBarHOF}%</span>
+    </div>
+    <div style="background:var(--border);border-radius:4px;height:5px;margin-bottom:8px">
+      <div style="width:${pBarHOF}%;background:var(--teal);height:5px;border-radius:4px"></div>
+    </div>`:''}
+    ${meta.metaOdonto>0?`<!-- Barra Odonto -->
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+      <span style="font-size:11px;color:var(--muted)">🦷 Odonto</span>
+      <span style="font-size:11px;color:var(--muted)">${pBarOd}%</span>
+    </div>
+    <div style="background:var(--border);border-radius:4px;height:5px;margin-bottom:10px">
+      <div style="width:${pBarOd}%;background:var(--info);height:5px;border-radius:4px"></div>
+    </div>`:''}
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:8px">
+      <span>${pBar}% da meta</span><span>${Math.round(pctMesDecorrido*100)}% do mês</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border)">
+      <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Fechamentos</div><div style="font-weight:700;font-size:13px">${fechamentos}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Ticket real</div><div style="font-weight:700;font-size:13px">${fmt(ticketReal)}</div></div>
+      <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Projeção</div><div style="font-weight:700;font-size:13px;color:${projecao>=metaTotal?'var(--success)':'var(--warn)'}">${fmt(projecao)}</div></div>
+    </div>
+  </div>`;
 }
 </script>
 </body>
