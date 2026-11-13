@@ -10299,15 +10299,19 @@ function renderComercial(){
 // ══ F2: FUNIL DO ORÇAMENTO ══
 // statusFunil: 'enviado' | 'negociacao' | 'aceito' | 'perdido'
 // (campo separado do status financeiro do orçamento)
-function _getStatusFunil(o){
-  if(o.statusFunil)return o.statusFunil;
-  // inferir pelo status financeiro para orçamentos antigos
-  if(o.status==='pago'||o.status==='parcial'||o.status==='aceite')return'aceito';
-  return'enviado';
+function _getStatusFunil(o){return o.statusFunil||null;}
+
+function _deveEntrarNoFunil(o){
+  // Entra no funil apenas se tiver statusFunil explícito, ou se for pendente (não fechou na hora)
+  if(o.statusFunil)return true;
+  return o.status==='pendente';
 }
 
 function _todosOrcsComFunil(){
-  return getPacs().flatMap(p=>(p.orcamentos||[]).map(o=>({...o,pacNome:p.nome,pacId:p.id,_pac:p})));
+  return getPacs().flatMap(p=>(p.orcamentos||[])
+    .filter(o=>_deveEntrarNoFunil(o))
+    .map(o=>({...o,pacNome:p.nome,pacId:p.id,
+      _statusFunil:o.statusFunil||(o.status==='pendente'?'enviado':null)})));
 }
 
 function moverFunil(orcId,pacId,novoStatus){
@@ -10375,7 +10379,7 @@ function renderFunilComercial(area){
   ];
   const todos=_todosOrcsComFunil();
   const agrupadosPorStatus={enviado:[],negociacao:[],aceito:[],perdido:[]};
-  todos.forEach(o=>{const s=_getStatusFunil(o);if(agrupadosPorStatus[s])agrupadosPorStatus[s].push(o);});
+  todos.forEach(o=>{const s=o._statusFunil;if(s&&agrupadosPorStatus[s])agrupadosPorStatus[s].push(o);});
 
   const totalGeral=todos.reduce((s,o)=>s+o.total,0);
   const totalAceito=agrupadosPorStatus.aceito.reduce((s,o)=>s+o.total,0);
