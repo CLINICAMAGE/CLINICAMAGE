@@ -11113,8 +11113,7 @@ function renderMetasComercial(area){
         </div>`:''}
       </div>
       ${alertaHF}
-      ${mixHF.length===0&&isMaster?'<div style="font-size:12px;color:var(--muted);padding:8px">Nenhum procedimento adicionado. Clique "+ Procedimento" para começar.</div>':''}
-      ${mixHF.length?_mixTable(mixHF,meta.metaHOF||0,'hf',isMaster):''}
+      ${_mixTable(mixHF,meta.metaHOF||0,'hf',isMaster)}
     </div>
 
     <!-- Mix Odontologia -->
@@ -11127,8 +11126,7 @@ function renderMetasComercial(area){
         </div>`:''}
       </div>
       ${alertaOd}
-      ${mixOd.length===0&&isMaster?'<div style="font-size:12px;color:var(--muted);padding:8px">Nenhum procedimento adicionado. Clique "+ Procedimento" para começar.</div>':''}
-      ${mixOd.length?_mixTable(mixOd,meta.metaOdonto||0,'odonto',isMaster):''}
+      ${_mixTable(mixOd,meta.metaOdonto||0,'odonto',isMaster)}
     </div>
   `;
 }
@@ -11187,8 +11185,7 @@ function salvarMix(area){
 }
 
 function addLinhaMix(area){
-  const tbody=$(`mixTbody_${area}`);
-  if(!tbody){renderComercial();setTimeout(()=>addLinhaMix(area),80);return;}
+  const tbody=$(`mixTbody_${area}`);if(!tbody)return;
   const IS=`border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--card);color:var(--text)`;
   const tr=document.createElement('tr');
   tr.dataset.procId='';
