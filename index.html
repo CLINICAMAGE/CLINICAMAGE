@@ -924,7 +924,7 @@ tr:hover td{background:var(--teal-p)}
       <div class="ph no-print">
         <div class="ph-l"><h1>CRM / Marketing</h1><p>Funil de leads, ROI por canal, indicações e NPS</p></div>
         <div class="ph-r" id="crmPhR">
-          <button class="btn btn-p" onclick="openM('mLead')">+ Novo Lead</button>
+          <button class="btn btn-p" onclick="abrirModalLead()">+ Novo Lead</button>
         </div>
       </div>
       <div class="stabs no-print">
@@ -952,6 +952,10 @@ tr:hover td{background:var(--teal-p)}
       </div>
       <div class="stabs no-print">
         <div class="stab on" onclick="comercialTab('metas')">🎯 Metas</div>
+        <div class="stab" onclick="comercialTab('funil')">📊 Funil</div>
+        <div class="stab" onclick="comercialTab('followup')">📞 Follow-up</div>
+        <div class="stab" onclick="comercialTab('ataque')">⚔️ Lista de Ataque</div>
+        <div class="stab" onclick="comercialTab('semana')">📅 Semana</div>
       </div>
       <div id="comercialArea"></div>
     </div>
@@ -1622,19 +1626,47 @@ tr:hover td{background:var(--teal-p)}
 </div></div>
 
 <!-- Lead CRM -->
-<div class="mo" id="mLead"><div class="mb">
-  <div class="mh"><h3>Novo Lead</h3><button class="mc" onclick="closeM('mLead')">×</button></div>
-  <div class="fr"><div class="ff"><label>Nome *</label><input type="text" id="ldN"></div>
-  <div class="ff"><label>Telefone</label><input type="text" id="ldTel"></div></div>
-  <div class="fr"><div class="ff"><label>Origem</label><select id="ldOrig">
-    <option>Instagram</option><option>Google</option><option>Indicação</option><option>Facebook</option>
-    <option>TikTok</option><option>Caminhando na rua</option><option>Outros</option>
-  </select></div><div class="ff"><label>Interesse</label><input type="text" id="ldInt" placeholder="Ex: Implante, Botox..."></div></div>
-  <div class="fr"><div class="ff"><label>Estágio inicial</label><select id="ldEst"><option value="lead">Lead</option><option value="contato">Contato feito</option></select></div>
-  <div class="ff" style="flex:0 0 140px"><label>Data</label><input type="date" id="ldDt"></div></div>
+<div class="mo" id="mLead"><div class="mb" style="width:560px">
+  <div class="mh"><h3 id="mLeadTitle">Novo Lead</h3><button class="mc" onclick="closeM('mLead')">×</button></div>
+  <input type="hidden" id="ldEditId">
+  <div class="fr">
+    <div class="ff"><label>Nome *</label><input type="text" id="ldN"></div>
+    <div class="ff"><label>Telefone</label><input type="text" id="ldTel"></div>
+  </div>
+  <div class="fr">
+    <div class="ff"><label>Origem</label><select id="ldOrig">
+      <option>Instagram</option><option>Google</option><option>Indicação</option><option>Facebook</option>
+      <option>TikTok</option><option>Caminhando na rua</option><option>Outros</option>
+    </select></div>
+    <div class="ff"><label>Interesse / Procedimento</label><input type="text" id="ldInt" placeholder="Ex: Implante, Botox..."></div>
+  </div>
+  <div class="fr">
+    <div class="ff"><label>Estágio inicial</label><select id="ldEst"><option value="lead">Lead</option><option value="contato">Contato feito</option></select></div>
+    <div class="ff" style="flex:0 0 140px"><label>Data</label><input type="date" id="ldDt"></div>
+  </div>
+  <div class="fr">
+    <div class="ff"><label>Temperatura</label>
+      <select id="ldTemp">
+        <option value="frio">🔵 Frio — sem interesse claro</option>
+        <option value="morno" selected>🟡 Morno — interessado</option>
+        <option value="quente">🔴 Quente — pronto para fechar</option>
+      </select>
+    </div>
+    <div class="ff"><label>Responsável</label>
+      <select id="ldResp">
+        <option value="">— Sem responsável —</option>
+      </select>
+    </div>
+  </div>
+  <div class="fr">
+    <div class="ff"><label>Próxima ação</label><input type="text" id="ldProxAcao" placeholder="Ex: Ligar, Enviar orçamento..."></div>
+    <div class="ff" style="flex:0 0 160px"><label>Data próxima ação</label><input type="date" id="ldDtProxAcao"></div>
+  </div>
   <div class="fr"><div class="ff"><label>Observações</label><textarea id="ldObs" style="min-height:55px"></textarea></div></div>
-  <div class="mf"><button class="btn btn-o" onclick="closeM('mLead')">Cancelar</button>
-  <button class="btn btn-p" onclick="salvarLead()">Salvar Lead</button></div>
+  <div class="mf">
+    <button class="btn btn-o" onclick="closeM('mLead')">Cancelar</button>
+    <button class="btn btn-p" onclick="salvarLead()">💾 Salvar Lead</button>
+  </div>
 </div></div>
 
 <!-- Investimento Marketing -->
@@ -2068,7 +2100,7 @@ const _SB_URL='https://hlgwlfzcucysywrhreau.supabase.co';
 const _SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsZ3dsZnpjdWN5c3l3cmhyZWF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExODk1NjIsImV4cCI6MjA5Njc2NTU2Mn0.HGQXsmS6HnalzdActcSaRF-WSwKm7N4c548tn2d65t4';
 const _sb=supabase.createClient(_SB_URL,_SB_KEY);
 const _db={};
-const _KEYS=['pacientes','lancamentos','agendamentos','leads','procedimentos','estoqueHF','equipe','recorrentes','centrosCusto','mktInvest','npsRespostas','auditLog','users','finConfig','sysConfig','identidade','clinicaInfo','reciboCount','tarefas','retornos','metas','metaMix'];
+const _KEYS=['pacientes','lancamentos','agendamentos','leads','procedimentos','estoqueHF','equipe','recorrentes','centrosCusto','mktInvest','npsRespostas','auditLog','users','finConfig','sysConfig','identidade','clinicaInfo','reciboCount','tarefas','retornos','metas','metaMix','followups','followupConfig'];
 const ls=(k,d=[])=>{const v=_db['c_'+k];return v!==undefined?v:(()=>{try{return JSON.parse(localStorage.getItem('c_'+k))??d}catch{return d}})()};
 const _ssSaveTs={};
 const ss=(k,v)=>{_db['c_'+k]=v;localStorage.setItem('c_'+k,JSON.stringify(v));_ssSaveTs['c_'+k]=Date.now();_sb.from('config').upsert({chave:'c_'+k,valor:v,updated_at:new Date().toISOString()}).then(({error})=>{if(error)console.warn('[sync]',k,error.message)});};
@@ -2301,6 +2333,7 @@ function go(p){closeMobMenu();
 function renderAll(){
   renderDash();renderAgenda();renderPacList();renderCRM();renderFin();renderRel();renderUsers();renderTermoPacSel();renderProc();renderEstoque();renderEquipe();renderDRE();renderBackupStats();renderCfg();renderTarefas();
   applyTheme();renderAniversarios();_renderDashMeta();
+  if($('page-comercial')?.classList.contains('active'))renderComercial();
 }
 
 // ══ E1: ANIVERSÁRIOS ══
@@ -5558,11 +5591,18 @@ function _salvarOrcImpl(modo){
     entrada:ent,entPgto,valorNoCartao,parcs,pgto,
     prof:profResp,profPorItem,
     status:modo==='aceite'?'aceite':'pendente',
+    statusFunil:modo==='aceite'?'aceito':'enviado',
     obs:$('oObs')?.value.trim()||'',itens,modo:ORC_MODE};
 
   if(editId){const i=CPAC.orcamentos.findIndex(x=>x.id===editId);if(i>=0)CPAC.orcamentos[i]=orc;else CPAC.orcamentos.push(orc);}
   else CPAC.orcamentos.push(orc);
   saveCPAC();
+  // Gerar follow-ups para novos orçamentos em modo pendente/enviado
+  if(!editId&&modo==='pendente'){
+    gerarFollowups(orc.id,CPAC.id,CPAC.nome,orc.desc,orc.total,orc.data);
+  } else if(editId&&orc.statusFunil==='aceito'){
+    cancelarFollowupsOrc(orc.id);
+  }
 
   if(modo==='aceite'&&!editId){
     const l=ls('lancamentos',[]);
@@ -7986,45 +8026,140 @@ function editarTituloEstagio(id){
   saveEstgLabel(id,novo.trim());
   renderKanban();
 }
+function abrirModalLead(leadId,estagioInicial){
+  // Preencher select de responsáveis
+  const sel=$('ldResp');if(sel){
+    const equipe=ls('equipe',[]).map(e=>e.nome||'').filter(Boolean);
+    sel.innerHTML='<option value="">— Sem responsável —</option>'+equipe.map(n=>`<option value="${n}">${n}</option>`).join('');
+  }
+  if(!leadId){
+    if($('mLeadTitle'))$('mLeadTitle').textContent='Novo Lead';
+    if($('ldEditId'))$('ldEditId').value='';
+    if($('ldDt'))$('ldDt').value=today();
+    ['ldN','ldTel','ldInt','ldObs','ldProxAcao','ldDtProxAcao'].forEach(id=>{const el=$(id);if(el)el.value='';});
+    if($('ldEst'))$('ldEst').value=estagioInicial||'lead';
+    if($('ldTemp'))$('ldTemp').value='morno';
+    if($('ldResp'))$('ldResp').value='';
+    openM('mLead');return;
+  }
+  const l=ls('leads',[]).find(x=>x.id===leadId);if(!l)return;
+  if($('mLeadTitle'))$('mLeadTitle').textContent='Editar Lead';
+  if($('ldEditId'))$('ldEditId').value=l.id;
+  if($('ldN'))$('ldN').value=l.nome||'';
+  if($('ldTel'))$('ldTel').value=l.tel||'';
+  if($('ldOrig'))$('ldOrig').value=l.origem||'Instagram';
+  if($('ldInt'))$('ldInt').value=l.interesse||'';
+  if($('ldEst'))$('ldEst').value=l.estagio||'lead';
+  if($('ldDt'))$('ldDt').value=l.data||today();
+  if($('ldTemp'))$('ldTemp').value=l.temperatura||'morno';
+  if($('ldResp'))$('ldResp').value=l.responsavel||'';
+  if($('ldProxAcao'))$('ldProxAcao').value=l.proxAcao||'';
+  if($('ldDtProxAcao'))$('ldDtProxAcao').value=l.dtProxAcao||'';
+  if($('ldObs'))$('ldObs').value=l.obs||'';
+  openM('mLead');
+}
 function salvarLead(){
   const nome=$('ldN').value.trim();if(!nome)return alert('Nome obrigatório.');
-  const l={id:uid(),nome,tel:$('ldTel').value.trim(),origem:$('ldOrig').value,
-    interesse:$('ldInt').value.trim(),estagio:$('ldEst').value,data:$('ldDt').value,obs:$('ldObs').value.trim()};
-  const arr=ls('leads',[]);arr.push(l);ss('leads',arr);
+  const editId=$('ldEditId')?.value||'';
+  const arr=ls('leads',[]);
+  const base=editId?arr.find(x=>x.id===editId)||{}:{};
+  const l={...base,
+    id:editId||uid(),nome,tel:$('ldTel').value.trim(),origem:$('ldOrig').value,
+    interesse:$('ldInt').value.trim(),estagio:$('ldEst').value,data:$('ldDt').value||today(),
+    temperatura:$('ldTemp')?.value||'morno',
+    responsavel:$('ldResp')?.value||'',
+    proxAcao:$('ldProxAcao')?.value.trim()||'',
+    dtProxAcao:$('ldDtProxAcao')?.value||'',
+    obs:$('ldObs').value.trim(),
+    notas:base.notas||[]};
+  if(editId){const i=arr.findIndex(x=>x.id===editId);if(i>=0)arr[i]=l;else arr.push(l);}
+  else arr.push(l);
+  ss('leads',arr);
   closeM('mLead');renderCRM();renderDash();
-  ['ldN','ldTel','ldInt','ldObs'].forEach(id=>{const el=$(id);if(el)el.value=''});
+}
+function adicionarNotaLead(id){
+  const texto=prompt('Registrar contato/observação:');if(!texto||!texto.trim())return;
+  const arr=ls('leads',[]);const l=arr.find(x=>x.id===id);if(!l)return;
+  if(!l.notas)l.notas=[];
+  l.notas.push({id:uid(),data:today(),texto:texto.trim(),autor:SESS?.user?.name||''});
+  ss('leads',arr);
+  viewLead(id);
+}
+function converterLeadEmPaciente(id){
+  const arr=ls('leads',[]);const l=arr.find(x=>x.id===id);if(!l)return;
+  if(!confirm(`Converter "${l.nome}" em paciente?\n\nO lead será marcado como "Concluído" e um novo prontuário será criado.`))return;
+  const pacs=getPacs();
+  const pac={id:uid(),nome:l.nome,tel:l.tel||'',cadastro:today(),
+    origem:l.origem||'',obs:l.obs||'',
+    odontograma:{},facePoints:[],atendimentos:[],orcamentos:[],docs:[],fotos:[]};
+  pacs.push(pac);ss('pacientes',pacs);
+  l.estagio='concluido';l.pacId=pac.id;
+  ss('leads',arr);
+  renderCRM();renderDash();renderPacList();
+  if(confirm(`Paciente criado!\n\nDeseja abrir o prontuário de ${pac.nome} agora?`)){
+    abrirProntuario(pac.id,'geral');
+  }
 }
 function moveLead(id,est){if(!est)return;const a=ls('leads',[]);const l=a.find(x=>x.id===id);if(l)l.estagio=est;ss('leads',a);renderCRM();renderDash()}
 let DRAG_LEAD_ID=null;
 function dragLead(e,id){DRAG_LEAD_ID=id;e.dataTransfer.effectAllowed='move';}
 function dropLead(e,estId){e.preventDefault();if(DRAG_LEAD_ID)moveLead(DRAG_LEAD_ID,estId);DRAG_LEAD_ID=null;}
+const _tempLabel={frio:'🔵 Frio',morno:'🟡 Morno',quente:'🔴 Quente'};
 function viewLead(id){
   const leads=ls('leads',[]);const l=leads.find(x=>x.id===id);if(!l)return;
+  document.getElementById('_leadOverlay')?.remove();
   const overlay=document.createElement('div');
+  overlay.id='_leadOverlay';
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px)';
-  overlay.innerHTML=`<div style="background:#fff;border-radius:16px;padding:28px;width:440px;max-width:95vw;box-shadow:0 24px 64px rgba(0,0,0,.22)">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--teal-d)">Lead: ${l.nome}</div>
-      <button onclick="this.closest('[style]').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">×</button>
+  const notas=(l.notas||[]).slice().reverse();
+  const telNum=(l.tel||'').replace(/\D/g,'');
+  const telWa=telNum?(telNum.startsWith('55')?telNum:'55'+telNum):'';
+  overlay.innerHTML=`<div style="background:var(--card);border-radius:16px;padding:28px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.22)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-weight:700;font-size:17px;color:var(--teal-d)">${l.nome}</div>
+      <button onclick="document.getElementById('_leadOverlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">×</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Telefone</div><div>${l.tel||'—'}</div></div>
-      <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Origem</div><div>${l.origem||'—'}</div></div>
-      <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Interesse</div><div>${l.interesse||'—'}</div></div>
-      <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Data</div><div>${fmtD(l.data)}</div></div>
-      <div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Estágio</div>
-        <select id="ldEstEdit" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:7px;font-size:13px;outline:none">
-          ${_ESTGS_DEFAULT.map(s=>`<option value="${s.id}" ${l.estagio===s.id?'selected':''}>${getEstgLabel(s.id)}</option>`).join('')}
-          <option value="perdido" ${l.estagio==='perdido'?'selected':''}>❌ Perdido</option>
-        </select>
-      </div>
-      ${l.obs?`<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Observações</div><div style="background:var(--bg);padding:8px;border-radius:6px;font-size:13px">${l.obs}</div></div>`:''}
+    <!-- Badge temperatura -->
+    <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;padding:3px 10px;border-radius:12px;background:var(--bg);font-weight:600">${_tempLabel[l.temperatura||'morno']||'🟡 Morno'}</span>
+      <span class="badge b-gray">${getEstgLabel(l.estagio||'lead')}</span>
+      ${l.responsavel?`<span style="font-size:12px;padding:3px 10px;border-radius:12px;background:var(--teal-p);color:var(--teal-d);font-weight:600">👤 ${l.responsavel}</span>`:''}
     </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border);padding-top:16px">
-      <button onclick="this.closest('[style]').remove()" style="padding:8px 16px;border-radius:8px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:12px;font-weight:600">Fechar</button>
-      ${l.tel?`<a href="https://wa.me/55${(l.tel||'').replace(/\D/g,'')}" target="_blank" style="padding:8px 16px;border-radius:8px;background:#25d366;color:#fff;text-decoration:none;font-size:12px;font-weight:600;display:inline-flex;align-items:center">📱 WhatsApp</a>`:''}
-      <button onclick="const s=document.getElementById('ldEstEdit').value;moveLead('${l.id}',s);this.closest('[style]').remove()" style="padding:8px 16px;border-radius:8px;background:var(--teal);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">💾 Salvar</button>
-      <button onclick="delLead('${l.id}');this.closest('[style]').remove()" style="padding:8px 16px;border-radius:8px;background:var(--danger);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">🗑 Excluir</button>
+    <!-- Dados -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Telefone</div><div style="font-size:13px">${l.tel||'—'}</div></div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Origem</div><div style="font-size:13px">${l.origem||'—'}</div></div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Interesse</div><div style="font-size:13px">${l.interesse||'—'}</div></div>
+      <div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Data do lead</div><div style="font-size:13px">${fmtD(l.data)}</div></div>
+      ${l.proxAcao?`<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:var(--warn);text-transform:uppercase;margin-bottom:2px">Próxima ação</div><div style="font-size:13px;font-weight:600">${l.proxAcao}${l.dtProxAcao?' — '+fmtD(l.dtProxAcao):''}</div></div>`:''}
+      ${l.obs?`<div style="grid-column:1/-1"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:2px">Observações</div><div style="font-size:12px;background:var(--bg);padding:8px;border-radius:6px">${l.obs}</div></div>`:''}
+    </div>
+    <!-- Mover estágio -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Estágio</div>
+      <select id="ldEstEdit" style="width:100%;border:1.5px solid var(--border);border-radius:6px;padding:7px;font-size:13px;background:var(--card);color:var(--text);outline:none">
+        ${_ESTGS_DEFAULT.map(s=>`<option value="${s.id}" ${l.estagio===s.id?'selected':''}>${getEstgLabel(s.id)}</option>`).join('')}
+        <option value="perdido" ${l.estagio==='perdido'?'selected':''}>❌ Perdido</option>
+      </select>
+    </div>
+    <!-- Notas / Histórico -->
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Histórico de contatos</div>
+      ${notas.length===0?'<div style="font-size:12px;color:var(--muted);font-style:italic">Nenhum contato registrado.</div>':''}
+      ${notas.map(n=>`<div style="background:var(--bg);border-radius:6px;padding:8px 10px;margin-bottom:6px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">${fmtD(n.data)}${n.autor?' — '+n.autor:''}</div>
+        <div style="font-size:12px">${n.texto}</div>
+      </div>`).join('')}
+      <button onclick="adicionarNotaLead('${l.id}')" style="margin-top:4px;padding:6px 12px;border-radius:6px;border:1.5px dashed var(--border);background:transparent;cursor:pointer;font-size:12px;color:var(--teal);width:100%">+ Registrar contato</button>
+    </div>
+    <!-- Ações -->
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button onclick="document.getElementById('_leadOverlay').remove()" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:12px;font-weight:600;color:var(--text)">Fechar</button>
+      <button onclick="abrirModalLead('${l.id}');document.getElementById('_leadOverlay').remove()" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--teal);background:transparent;cursor:pointer;font-size:12px;font-weight:600;color:var(--teal)">✏️ Editar</button>
+      ${telWa?`<button onclick="window.open('https://wa.me/${telWa}','_blank')" style="padding:8px 14px;border-radius:8px;background:#25d366;color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">💬 WhatsApp</button>`:''}
+      ${l.estagio!=='concluido'?`<button onclick="converterLeadEmPaciente('${l.id}');document.getElementById('_leadOverlay').remove()" style="padding:8px 14px;border-radius:8px;background:var(--teal);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">🏥 Converter em Paciente</button>`:''}
+      <button onclick="const s=document.getElementById('ldEstEdit').value;moveLead('${l.id}',s);document.getElementById('_leadOverlay').remove()" style="padding:8px 14px;border-radius:8px;background:var(--info);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">💾 Salvar estágio</button>
+      <button onclick="delLead('${l.id}');document.getElementById('_leadOverlay').remove()" style="padding:8px 14px;border-radius:8px;background:var(--danger);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600">🗑</button>
     </div>
   </div>`;
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
@@ -8049,23 +8184,35 @@ function renderKanban(){
         <span>${lbl}</span><span class="badge ${st.c}">${cards.length}</span>
         <button onclick="editarTituloEstagio('${st.id}')" title="Renomear etapa" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--muted);padding:0 2px;margin-left:4px">✏️</button>
       </div>
-      <div class="kb-body" id="kbBody_${st.id}">${cards.map(c=>`<div class="kb-card" draggable="true" ondragstart="dragLead(event,'${c.id}')" style="cursor:grab">
-        <h5>${c.nome}</h5>
-        <p style="margin-bottom:4px">${c.interesse||''} ${c.origem?'· '+c.origem:''}<br><span style="font-size:10px;color:var(--muted)">${fmtD(c.data)}</span></p>
-        ${c.tel?`<a href="https://wa.me/55${c.tel.replace(/\D/g,'')}" target="_blank" style="font-size:11px;color:var(--success);display:block;margin-bottom:4px">📱 WhatsApp</a>`:''}
-        <div style="margin-bottom:6px">
-          <select onchange="moveLead('${c.id}',this.value);this.value=''" style="width:100%;font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;outline:none;color:var(--muted)">
-            <option value="">↪ Mover para...</option>
-            ${estgsOther.map(ns=>`<option value="${ns.id}">${getEstgLabel(ns.id)}</option>`).join('')}
-            <option value="perdido">❌ Perdido</option>
-          </select>
-        </div>
-        <div style="display:flex;gap:3px">
-          <button class="btn btn-xs btn-o" style="font-size:9px;flex:1" onclick="viewLead('${c.id}')">👁 Ver</button>
-          <button class="btn btn-xs btn-d" style="font-size:9px" onclick="delLead('${c.id}')">🗑</button>
-        </div>
-      </div>`).join('')}</div>
-      <div class="kb-add"><button class="btn btn-o btn-xs" style="width:100%" onclick="document.getElementById('ldEst').value='${st.id}';openM('mLead')">+ Lead aqui</button></div>
+      <div class="kb-body" id="kbBody_${st.id}">${cards.map(c=>{
+        const tempIco={frio:'🔵',morno:'🟡',quente:'🔴'}[c.temperatura||'morno']||'🟡';
+        const telNum=(c.tel||'').replace(/\D/g,'');
+        const notas=(c.notas||[]).length;
+        const proxAtrasada=c.dtProxAcao&&c.dtProxAcao<today();
+        return`<div class="kb-card" draggable="true" ondragstart="dragLead(event,'${c.id}')" style="cursor:grab">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:3px">
+            <h5 style="margin:0;flex:1">${c.nome}</h5>
+            <span title="${_tempLabel[c.temperatura||'morno']}">${tempIco}</span>
+          </div>
+          <p style="margin-bottom:4px;font-size:11px">${c.interesse||''} ${c.origem?'· '+c.origem:''}<br><span style="font-size:10px;color:var(--muted)">${fmtD(c.data)}</span></p>
+          ${c.responsavel?`<div style="font-size:10px;color:var(--muted);margin-bottom:3px">👤 ${c.responsavel}</div>`:''}
+          ${proxAtrasada?`<div style="font-size:10px;color:var(--danger);font-weight:600;margin-bottom:3px">⚠️ Ação: ${c.proxAcao} (${fmtD(c.dtProxAcao)})</div>`:''}
+          ${notas?`<div style="font-size:10px;color:var(--teal);margin-bottom:4px">💬 ${notas} contato(s)</div>`:''}
+          <div style="margin-bottom:6px">
+            <select onchange="moveLead('${c.id}',this.value);this.value=''" style="width:100%;font-size:10px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;outline:none;color:var(--muted);background:var(--card)">
+              <option value="">↪ Mover para...</option>
+              ${estgsOther.map(ns=>`<option value="${ns.id}">${getEstgLabel(ns.id)}</option>`).join('')}
+              <option value="perdido">❌ Perdido</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:3px">
+            <button class="btn btn-xs btn-o" style="font-size:9px;flex:1" onclick="viewLead('${c.id}')">👁 Ver</button>
+            ${telNum?`<button class="btn btn-xs btn-s" style="font-size:9px" onclick="window.open('https://wa.me/${telNum.startsWith('55')?telNum:'55'+telNum}','_blank')">💬</button>`:''}
+            <button class="btn btn-xs btn-d" style="font-size:9px" onclick="delLead('${c.id}')">🗑</button>
+          </div>
+        </div>`;
+      }).join('')}</div>
+      <div class="kb-add"><button class="btn btn-o btn-xs" style="width:100%" onclick="abrirModalLead(null,'${st.id}')">+ Lead aqui</button></div>
     </div>`;
   }).join('');
 }
@@ -9005,7 +9152,7 @@ function crmTab(t){
   document.querySelectorAll('#page-crm .stab').forEach((el,i)=>el.classList.toggle('on',['funil','roi','indicacao','nps'][i]===t));
   const phR=$('crmPhR');
   if(phR){
-    if(t==='funil') phR.innerHTML='<button class="btn btn-p" onclick="openM(\'mLead\')">+ Novo Lead</button>';
+    if(t==='funil') phR.innerHTML='<button class="btn btn-p" onclick="abrirModalLead()">+ Novo Lead</button>';
     else if(t==='roi') phR.innerHTML='<button class="btn btn-p" onclick="abrirMktInvest()">+ Investimento</button>';
     else if(t==='nps') phR.innerHTML='<button class="btn btn-p" onclick="abrirNPS()">+ Avaliar Paciente</button>';
     else phR.innerHTML='';
@@ -9719,6 +9866,123 @@ const MANUAL_SECOES=[
 <h4>Configurar retorno no cadastro do procedimento</h4>
 <p>Em <strong>Administração → Procedimentos</strong>, cada procedimento tem o campo <strong>Recorrência / Retorno automático</strong>. Ao definir o tipo (Toxina, AH ou Bioestimulador), o sistema usa essa configuração com prioridade sobre a detecção por palavras-chave.</p>
 <div class="manual-alerta aviso">⚠️ Se o procedimento não tiver o tipo de retorno configurado e o nome não contiver palavras-chave reconhecidas, nenhum retorno será gerado. Configure o campo no cadastro do procedimento para garantir a detecção.</div>
+`},
+{id:'comercial',titulo:'Módulo Comercial',icone:'🎯',conteudo:`
+<h3>Módulo Comercial</h3>
+<p>Central estratégica para planejar metas, gerenciar orçamentos no funil, acompanhar follow-ups, atacar oportunidades abertas e visualizar o calendário semanal de ações comerciais. Acesse pelo menu lateral em <strong>Comercial</strong>.</p>
+<div class="manual-alerta info">💡 O módulo Comercial é separado do CRM de leads — ele foca no <strong>pós-orçamento</strong>: prospects e pacientes que já receberam proposta. O CRM de leads cuida do estágio anterior (aquisição).</div>
+
+<h4>🎯 F1 — Metas e Mix de Procedimentos</h4>
+<p>Configure as metas financeiras mensais separadas por área (<strong>HOF</strong> e <strong>Odontologia</strong>), com parâmetros operacionais individuais e mix de procedimentos da sua base.</p>
+
+<h5 style="font-size:12px;font-weight:700;margin:12px 0 4px">Parâmetros por área</h5>
+<p>Cada área tem seu próprio bloco de configuração:</p>
+<ul>
+  <li><strong>Meta (R$):</strong> faturamento-alvo da área no mês</li>
+  <li><strong>Dias de atendimento no mês:</strong> quantos dias a agenda da área ficará aberta</li>
+  <li><strong>Horas de atendimento por dia:</strong> carga horária diária disponível</li>
+  <li><strong>Taxa de fechamento (%):</strong> quantos % dos orçamentos enviados são aceitos</li>
+  <li><strong>Taxa de comparecimento (%):</strong> quantos % das consultas agendadas o paciente comparece</li>
+  <li><strong>Taxa de agendamento (%):</strong> quantos % dos leads/contatos convertem em agendamento</li>
+</ul>
+<p><strong>Semanas no mês</strong> é um campo compartilhado entre as duas áreas.</p>
+<p>Clique em <strong>💾 Salvar Parâmetros</strong> para gravar. Apenas o perfil <strong>Master</strong> pode editar.</p>
+
+<h5 style="font-size:12px;font-weight:700;margin:12px 0 4px">Resumo calculado por área</h5>
+<p>O sistema gera automaticamente para cada área:</p>
+<ul>
+  <li>Número de pacientes a fechar para bater a meta</li>
+  <li>Ticket médio necessário</li>
+  <li>Faturamento por dia</li>
+  <li>Pacientes por semana</li>
+  <li>Horas disponíveis × horas necessárias</li>
+  <li><strong>Ocupação da agenda</strong> (verde = cabe, amarelo = quase cheia, vermelho = impossível)</li>
+  <li>Leads necessários (calculado pelo funil de taxas)</li>
+</ul>
+<p>O card <strong>Total Combinado</strong> mostra a soma das duas áreas.</p>
+
+<h5 style="font-size:12px;font-weight:700;margin:12px 0 4px">Mix de Procedimentos (HOF e Odontologia)</h5>
+<p>Define quais procedimentos compõem cada meta e em que proporção.</p>
+<ol>
+  <li>Clique em <strong>+ Procedimento</strong> na tabela da área desejada</li>
+  <li>Selecione o procedimento no <strong>dropdown</strong> — a lista vem diretamente de <strong>Administração → Procedimentos</strong>, filtrada pela especialidade da área</li>
+  <li>Ao selecionar, <strong>ticket</strong> (valor do proc) e <strong>horas/pac</strong> (duração ÷ 60) preenchem automaticamente — você pode ajustar manualmente</li>
+  <li>Defina o <strong>% da meta</strong> que aquele procedimento representa</li>
+  <li>Clique em <strong>💾 Salvar Mix</strong> — o sistema valida que a soma dos percentuais seja 100%</li>
+</ol>
+<div class="manual-alerta aviso">⚠️ Para que o dropdown tenha opções, cadastre os procedimentos antes em <strong>Administração → Procedimentos</strong>, definindo a especialidade (Harmonização Facial, Odontologia ou Ambas).</div>
+
+<h4>📊 F2 — Funil de Orçamentos</h4>
+<p>Kanban de orçamentos com 4 estágios: <strong>Enviado → Em Negociação → Aceito → Perdido</strong>.</p>
+<ul>
+  <li>Orçamentos criados no prontuário do paciente entram automaticamente no estágio <strong>Enviado</strong></li>
+  <li>Clique nos botões de ação dentro do card para mover entre estágios</li>
+  <li>Ao mover para <strong>Aceito</strong>: o sistema encerra os follow-ups pendentes automaticamente</li>
+  <li>Ao mover para <strong>Perdido</strong>: os follow-ups também são cancelados e o motivo pode ser registrado</li>
+  <li>Use os filtros no topo para visualizar por mês, responsável ou valor</li>
+</ul>
+<div class="manual-alerta dica">📌 O funil reflete apenas orçamentos com <strong>status funil</strong> (distinto do status financeiro). Um orçamento "pago" pode ainda estar "em negociação" comercialmente — os dois campos são independentes.</div>
+
+<h4>📞 F3 — Follow-up Automático</h4>
+<p>Cadência automática de contatos para orçamentos que entram no funil.</p>
+<h5 style="font-size:12px;font-weight:700;margin:12px 0 4px">Como funciona</h5>
+<ol>
+  <li>Ao criar um orçamento pendente, o sistema gera automaticamente os follow-ups configurados na cadência</li>
+  <li>Padrão: <strong>D+1, D+3, D+7, D+15, D+30</strong> após a data do orçamento</li>
+  <li>A lista de Follow-ups mostra: paciente, orçamento, data prevista, responsável e status</li>
+  <li>Clique em <strong>✔ Concluir</strong> após realizar o contato — registre observações sobre o que foi conversado</li>
+  <li>Follow-ups atrasados aparecem em vermelho com alertas no dashboard</li>
+</ol>
+<h5 style="font-size:12px;font-weight:700;margin:12px 0 4px">Configurar a cadência</h5>
+<p>Em <strong>Comercial → Follow-up → ⚙️ Configurar Cadência</strong> você define os dias, o nome de cada passo e o responsável padrão por cada etapa. As alterações valem para novos orçamentos.</p>
+<div class="manual-alerta info">💡 Quando o orçamento é aceito ou perdido no funil (F2), todos os follow-ups pendentes daquele orçamento são cancelados automaticamente.</div>
+
+<h4>⚔️ F4 — Lista de Ataque</h4>
+<p>Visão consolidada de todos os orçamentos abertos que precisam de ação, ordenados por prioridade.</p>
+<ul>
+  <li>Mostra: paciente, valor do orçamento, dias em aberto, próximo follow-up e responsável</li>
+  <li>Orçamentos mais antigos sem contato são destacados no topo</li>
+  <li>Use como pauta diária/semanal das ligações comerciais</li>
+  <li>Clique no nome do paciente para ir diretamente ao prontuário</li>
+  <li>Use os filtros para visualizar por responsável ou faixa de valor</li>
+</ul>
+
+<h4>👥 F5 — Leads Comerciais</h4>
+<p>Kanban de leads com foco comercial, integrado ao CRM de leads do sistema.</p>
+<ul>
+  <li>Estágios: <strong>Lead → Contato feito → Orçamento enviado → Aprovado → Em tratamento → Concluído</strong></li>
+  <li>Clique em <strong>+ Novo Lead</strong> para cadastrar. Preencha nome, telefone, origem, interesse, temperatura, responsável, próxima ação e data</li>
+  <li>Use <strong>+ Lead aqui</strong> dentro de uma coluna para criar o lead já no estágio correto</li>
+  <li>Clique em <strong>Converter em Paciente</strong> no card do lead para criar automaticamente o cadastro no prontuário — o lead fica vinculado ao paciente</li>
+  <li>Temperatura: 🔴 Quente (pronto para fechar), 🟡 Morno (precisa de mais follow-up), 🔵 Frio (interesse baixo)</li>
+</ul>
+
+<h4>📅 F6 — Semana Comercial</h4>
+<p>Agenda estratégica semanal com todas as ações comerciais em um único lugar.</p>
+<ul>
+  <li>Visão da semana com colunas por dia (Seg → Sex) e linhas por tipo de ação</li>
+  <li>Mostra: follow-ups do dia, leads com próxima ação programada e orçamentos que vencem</li>
+  <li>Clique em qualquer item para abrir o registro correspondente e registrar o contato</li>
+  <li>Use como planejamento diário da equipe comercial</li>
+</ul>
+
+<h4>🎯 Card de Meta no Dashboard</h4>
+<p>O dashboard exibe automaticamente um card de acompanhamento quando houver meta configurada:</p>
+<ul>
+  <li>Barra de progresso total + barras individuais de HOF e Odonto</li>
+  <li>Indicador se está acima ou abaixo do ritmo esperado para o mês</li>
+  <li>Fechamentos do mês, ticket real médio e projeção ao final do mês</li>
+</ul>
+<div class="manual-alerta dica">📌 O card de meta é atualizado em tempo real. Para ele aparecer, configure Meta HOF e/ou Meta Odonto em <strong>Comercial → Metas</strong>.</div>
+
+<h4>Fluxo comercial recomendado</h4>
+<ol>
+  <li><strong>Início do mês:</strong> configure metas e mix em <strong>Metas</strong>, revise a cadência de follow-up</li>
+  <li><strong>Ao criar orçamento</strong> no prontuário: o orçamento entra automaticamente no funil como <strong>Enviado</strong> e gera os follow-ups</li>
+  <li><strong>Diariamente:</strong> abra <strong>Semana Comercial</strong> ou <strong>Lista de Ataque</strong> para ver o que precisa de contato</li>
+  <li><strong>Ao falar com o paciente:</strong> conclua o follow-up com observação e, se fechou, mova o orçamento para <strong>Aceito</strong> no Funil</li>
+  <li><strong>Semanalmente:</strong> revise o dashboard e os resumos de cada área para verificar o ritmo da meta</li>
+</ol>
 `}
 ];
 
@@ -9982,25 +10246,669 @@ const getMetaMix=()=>ls('metaMix',[]);
 const saveMetaMix=d=>ss('metaMix',d);
 
 function _mesAtualStr(){const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
-function _getMeta(mes){return getMetas().find(m=>m.mes===mes)||{mes,metaHOF:0,metaOdonto:0,diasAtend:20,horasAtenDia:8,semanas:4,txFechamento:40,txComparecimento:80,txAgendamento:30};}
+function _getMeta(mes){
+  return getMetas().find(m=>m.mes===mes)||{mes,
+    metaHOF:0,diasAtendHOF:20,horasAtenDiaHOF:4,txFechHOF:40,txCompHOF:80,txAgendHOF:30,
+    metaOdonto:0,diasAtendOd:20,horasAtenDiaOd:4,txFechOd:40,txCompOd:80,txAgendOd:30,
+    semanas:4};
+}
 function _getMetaMix(mes,area){
-  const mix=getMetaMix().filter(m=>m.mes===mes&&m.area===area);
-  if(mix.length)return mix;
-  if(area==='hf')return[
-    {mes,area:'hf',proc:'Full Face (toxina + preenchedor)',pct:35,ticket:6000,horasPorPac:2.5},
-    {mes,area:'hf',proc:'Toxina Botulínica',pct:25,ticket:1200,horasPorPac:1.0},
-    {mes,area:'hf',proc:'Preenchimento AH',pct:25,ticket:1500,horasPorPac:1.5},
-    {mes,area:'hf',proc:'Bioestimulador de Colágeno',pct:15,ticket:2000,horasPorPac:1.5},
-  ];
-  return[
-    {mes,area:'odonto',proc:'Odontologia Estética',pct:50,ticket:3000,horasPorPac:6.0},
-    {mes,area:'odonto',proc:'Clínica Geral / Prevenção',pct:50,ticket:400,horasPorPac:2.0},
-  ];
+  return getMetaMix().filter(m=>m.mes===mes&&m.area===area);
 }
 
 let _CCOMERC='metas';
-function comercialTab(t){_CCOMERC=t;document.querySelectorAll('#page-comercial .stab').forEach((el,i)=>el.classList.toggle('on',['metas'][i]===t));renderComercial();}
-function renderComercial(){const area=$('comercialArea');if(!area)return;if(_CCOMERC==='metas')renderMetasComercial(area);}
+function comercialTab(t){_CCOMERC=t;document.querySelectorAll('#page-comercial .stab').forEach((el,i)=>el.classList.toggle('on',['metas','funil','followup','ataque','semana'][i]===t));renderComercial();}
+function renderComercial(){const area=$('comercialArea');if(!area)return;if(_CCOMERC==='metas')renderMetasComercial(area);else if(_CCOMERC==='funil')renderFunilComercial(area);else if(_CCOMERC==='followup')renderFollowupComercial(area);else if(_CCOMERC==='ataque')renderListaAtaque(area);else if(_CCOMERC==='semana')renderSemanaComercial(area);}
+
+// ══ F2: FUNIL DO ORÇAMENTO ══
+// statusFunil: 'enviado' | 'negociacao' | 'aceito' | 'perdido'
+// (campo separado do status financeiro do orçamento)
+function _getStatusFunil(o){
+  if(o.statusFunil)return o.statusFunil;
+  // inferir pelo status financeiro para orçamentos antigos
+  if(o.status==='pago'||o.status==='parcial'||o.status==='aceite')return'aceito';
+  return'enviado';
+}
+
+function _todosOrcsComFunil(){
+  return getPacs().flatMap(p=>(p.orcamentos||[]).map(o=>({...o,pacNome:p.nome,pacId:p.id,_pac:p})));
+}
+
+function moverFunil(orcId,pacId,novoStatus){
+  const pac=getPacs().find(p=>p.id===pacId);if(!pac)return;
+  const orc=pac.orcamentos?.find(o=>o.id===orcId);if(!orc)return;
+  if(novoStatus==='perdido'){
+    const motivo=prompt('Motivo da perda (opcional):');
+    if(motivo===null)return;
+    orc.statusFunil='perdido';
+    orc.motivoPerda=motivo||'';
+    orc.dataPerdido=today();
+    cancelarFollowupsOrc(orc.id);
+  } else {
+    orc.statusFunil=novoStatus;
+    if(novoStatus==='enviado'){
+      gerarFollowups(orc.id,pac.id,pac.nome,orc.desc,orc.total||0,orc.data||today());
+    } else if(novoStatus==='aceito'){
+      cancelarFollowupsOrc(orc.id);
+    }
+  }
+  // Sincronizar com status financeiro quando aceito
+  if(novoStatus==='aceito'&&orc.status==='pendente'){
+    orc.status='aceite';
+    // Criar lançamento de receita se não existir
+    const lancs=getLancs();
+    if(!lancs.find(l=>l.orcId===orc.id&&l.tipo==='receita')){
+      lancs.push({id:uid(),tipo:'receita',data:orc.data||today(),
+        desc:orc.desc,paciente:pac.nome,pacId:pac.id,
+        categoria:'Orçamento',valor:orc.total||0,
+        status:'pendente',pgto:orc.pgto||'Dinheiro',orcId:orc.id,
+        obs:'Aceito via funil comercial'});
+      ss('lancamentos',lancs);
+    }
+  }
+  const pacs=getPacs();const idx=pacs.findIndex(p=>p.id===pacId);if(idx>=0){pacs[idx]=pac;ss('pacientes',pacs);}
+  renderComercial();if(CPAC?.id===pacId){CPAC=pac;renderFinPac();}
+}
+
+function abrirNovoOrcRapido(){
+  openM('mOrcRapido');
+  const sel=$('orqPac');if(!sel)return;
+  sel.innerHTML=getPacs().sort((a,b)=>a.nome.localeCompare(b.nome)).map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+}
+
+function salvarOrcRapido(){
+  const pacId=$('orqPac')?.value;const desc=$('orqDesc')?.value.trim();const valor=parseFloat($('orqValor')?.value)||0;const data=$('orqData')?.value||today();
+  if(!pacId||!desc||!valor)return alert('Preencha paciente, descrição e valor.');
+  const pacs=getPacs();const pac=pacs.find(p=>p.id===pacId);if(!pac)return;
+  if(!pac.orcamentos)pac.orcamentos=[];
+  const orc={id:uid(),data,desc,total:valor,totalCobrado:valor,liquidoClinica:valor,taxaOpt:'repassar',taxa:0,taxaValor:0,entrada:0,parcs:1,pgto:'Dinheiro',status:'pendente',statusFunil:'enviado',obs:'Orçamento rápido (papel)',itens:[],modo:'simples'};
+  pac.orcamentos.push(orc);
+  ss('pacientes',pacs);
+  gerarFollowups(orc.id,pac.id,pac.nome,orc.desc,orc.total,orc.data);
+  closeM('mOrcRapido');['orqDesc','orqValor'].forEach(id=>{const el=$(id);if(el)el.value='';});
+  renderComercial();renderFin();renderDash();
+}
+
+function renderFunilComercial(area){
+  const cols=[
+    {id:'enviado',label:'📤 Enviado',cor:'var(--info)',bg:'rgba(59,130,246,.08)'},
+    {id:'negociacao',label:'🤝 Em negociação',cor:'var(--warn)',bg:'rgba(245,158,11,.08)'},
+    {id:'aceito',label:'✅ Aceito',cor:'var(--success)',bg:'rgba(16,185,129,.08)'},
+    {id:'perdido',label:'❌ Perdido',cor:'var(--danger)',bg:'rgba(239,68,68,.08)'},
+  ];
+  const todos=_todosOrcsComFunil();
+  const agrupadosPorStatus={enviado:[],negociacao:[],aceito:[],perdido:[]};
+  todos.forEach(o=>{const s=_getStatusFunil(o);if(agrupadosPorStatus[s])agrupadosPorStatus[s].push(o);});
+
+  const totalGeral=todos.reduce((s,o)=>s+o.total,0);
+  const totalAceito=agrupadosPorStatus.aceito.reduce((s,o)=>s+o.total,0);
+  const totalPerdido=agrupadosPorStatus.perdido.reduce((s,o)=>s+o.total,0);
+  const taxaConv=todos.length>0?(agrupadosPorStatus.aceito.length/todos.length*100):0;
+
+  area.innerHTML=`
+    <!-- KPIs rápidos -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">
+      ${[
+        {label:'Total em aberto',val:fmt(todos.filter(o=>_getStatusFunil(o)!=='perdido').reduce((s,o)=>s+o.total,0)),cor:'var(--teal-d)'},
+        {label:'Aceitos',val:fmt(totalAceito),cor:'var(--success)'},
+        {label:'Perdidos',val:fmt(totalPerdido),cor:'var(--danger)'},
+        {label:'Taxa de conversão',val:taxaConv.toFixed(1)+'%',cor:taxaConv>=50?'var(--success)':taxaConv>=30?'var(--warn)':'var(--danger)'},
+      ].map(k=>`<div class="card" style="text-align:center;padding:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${k.label}</div>
+        <div style="font-weight:700;font-size:16px;color:${k.cor}">${k.val}</div>
+      </div>`).join('')}
+    </div>
+
+    <div style="margin-bottom:12px;text-align:right">
+      <button class="btn btn-p btn-sm" onclick="abrirNovoOrcRapido()">📄 + Orçamento rápido</button>
+    </div>
+
+    <!-- Kanban -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:start">
+      ${cols.map(col=>{
+        const orcs=agrupadosPorStatus[col.id]||[];
+        const totalCol=orcs.reduce((s,o)=>s+o.total,0);
+        const acoesMap={
+          enviado:[{l:'→ Em negociação',s:'negociacao',cls:'btn-o'},{l:'✅ Aceitar',s:'aceito',cls:'btn-s'},{l:'❌ Perder',s:'perdido',cls:'btn-d'}],
+          negociacao:[{l:'✅ Aceitar',s:'aceito',cls:'btn-s'},{l:'↩ Enviado',s:'enviado',cls:'btn-o'},{l:'❌ Perder',s:'perdido',cls:'btn-d'}],
+          aceito:[{l:'↩ Negociação',s:'negociacao',cls:'btn-o'}],
+          perdido:[{l:'↩ Reabrir',s:'enviado',cls:'btn-o'}],
+        };
+        return`<div style="background:${col.bg};border:1.5px solid ${col.cor}33;border-radius:10px;padding:12px">
+          <div style="font-weight:700;font-size:13px;color:${col.cor};margin-bottom:4px;display:flex;justify-content:space-between">
+            <span>${col.label}</span><span style="font-size:11px;background:${col.cor}22;padding:2px 8px;border-radius:20px">${orcs.length}</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${fmt(totalCol)}</div>
+          ${orcs.length===0?`<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">Nenhum orçamento</div>`:''}
+          ${orcs.map(o=>`<div style="background:var(--card);border-radius:8px;padding:10px;margin-bottom:8px;border-left:3px solid ${col.cor};box-shadow:0 1px 4px rgba(0,0,0,.07)">
+            <div style="font-weight:600;font-size:12px;margin-bottom:2px">${o.pacNome}</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${o.desc}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-weight:700;font-size:13px;color:var(--teal-d)">${fmt(o.total)}</span>
+              <span style="font-size:10px;color:var(--muted)">${fmtD(o.data)}</span>
+            </div>
+            ${o.motivoPerda?`<div style="font-size:10px;color:var(--danger);margin-bottom:5px">Motivo: ${o.motivoPerda}</div>`:''}
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              ${(acoesMap[col.id]||[]).map(a=>`<button class="btn ${a.cls} btn-xs" onclick="moverFunil('${o.id}','${o.pacId}','${a.s}')">${a.l}</button>`).join('')}
+              <button class="btn btn-o btn-xs" onclick="abrirProntuario('${o.pacId}','financeiro')">👤</button>
+            </div>
+          </div>`).join('')}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <!-- Modal orçamento rápido -->
+    <div id="mOrcRapido" class="modal" style="display:none">
+      <div class="modal-box" style="max-width:420px">
+        <div class="modal-hd"><h3>📄 Orçamento Rápido</h3><button class="modal-cls" onclick="closeM('mOrcRapido')">×</button></div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Paciente</label>
+            <select id="orqPac" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;background:var(--card);color:var(--text)"></select></div>
+          <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Descrição</label>
+            <input type="text" id="orqDesc" placeholder="Ex: Aparelho + clareamento" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;background:var(--card);color:var(--text)"></div>
+          <div class="g2">
+            <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Valor (R$)</label>
+              <input type="number" id="orqValor" placeholder="0,00" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;background:var(--card);color:var(--text)"></div>
+            <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Data</label>
+              <input type="date" id="orqData" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;background:var(--card);color:var(--text)"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">💡 Para registrar forma de pagamento, taxas e itens detalhados, use o orçamento completo no prontuário do paciente.</div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-g" onclick="closeM('mOrcRapido')">Cancelar</button>
+            <button class="btn btn-p" onclick="salvarOrcRapido()">💾 Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  // Preencher data padrão no modal
+  const dEl=$('orqData');if(dEl&&!dEl.value)dEl.value=today();
+}
+
+// ══ F3: CADÊNCIA DE FOLLOW-UP ══
+const getFollowups=()=>ls('followups',[]);
+const saveFollowups=d=>ss('followups',d);
+const _CADENCIA_DEFAULT=[
+  {passo:1,dias:1,label:'D+1 — Confirmação de interesse'},
+  {passo:2,dias:3,label:'D+3 — Dúvidas / negociação'},
+  {passo:3,dias:7,label:'D+7 — Última chance'},
+  {passo:4,dias:15,label:'D+15 — Reaquecimento'},
+  {passo:5,dias:30,label:'D+30 — Oferta especial'},
+];
+function getFollowupConfig(){
+  const cfg=ls('followupConfig',[]);
+  if(cfg.length)return cfg;
+  return _CADENCIA_DEFAULT.map(c=>({...c,responsavel:''}));
+}
+function saveFollowupConfig(d){ss('followupConfig',d);}
+
+function _addDias(dataStr,dias){
+  const d=new Date(dataStr+'T12:00:00');d.setDate(d.getDate()+dias);
+  return d.toISOString().split('T')[0];
+}
+
+function gerarFollowups(orcId,pacId,pacNome,orcDesc,orcValor,dataOrc){
+  const cfg=getFollowupConfig();
+  const fups=getFollowups().filter(f=>f.orcId!==orcId); // limpa anteriores do mesmo orc
+  cfg.forEach(c=>{
+    fups.push({id:uid(),orcId,pacId,pacNome,orcDesc,orcValor,dataOrc,
+      passo:c.passo,diasApos:c.dias,label:c.label,
+      dataFollowup:_addDias(dataOrc,c.dias),
+      responsavel:c.responsavel||'',
+      status:'pendente',obs:'',dataConcluido:''});
+  });
+  saveFollowups(fups);
+}
+
+function concluirFollowup(id,acao){
+  // acao: 'feito' | 'pulado'
+  const fups=getFollowups();
+  const f=fups.find(x=>x.id===id);if(!f)return;
+  f.status=acao;f.dataConcluido=today();
+  if(acao==='feito'){
+    const obs=prompt('Observação (opcional):');
+    if(obs===null)return;
+    f.obs=obs||'';
+  }
+  saveFollowups(fups);renderComercial();
+}
+
+function reagendarFollowup(id){
+  const fups=getFollowups();
+  const f=fups.find(x=>x.id===id);if(!f)return;
+  const nova=prompt('Nova data (AAAA-MM-DD):',f.dataFollowup);
+  if(!nova||nova===f.dataFollowup)return;
+  f.dataFollowup=nova;f.status='pendente';f.dataConcluido='';
+  saveFollowups(fups);renderComercial();
+}
+
+function cancelarFollowupsOrc(orcId){
+  saveFollowups(getFollowups().filter(f=>f.orcId!==orcId));
+}
+
+function renderFollowupComercial(area){
+  const isMaster=SESS?.user?.role==='master';
+  const td=today();
+  const fups=getFollowups();
+  const cfg=getFollowupConfig();
+  const equipe=ls('equipe',[]).map(e=>e.nome||'').filter(Boolean);
+  // Hoje + atrasados
+  const urgentes=fups.filter(f=>f.status==='pendente'&&f.dataFollowup<=td).sort((a,b)=>a.dataFollowup.localeCompare(b.dataFollowup));
+  // Próximos 7 dias
+  const d7=_addDias(td,7);
+  const proximos=fups.filter(f=>f.status==='pendente'&&f.dataFollowup>td&&f.dataFollowup<=d7).sort((a,b)=>a.dataFollowup.localeCompare(b.dataFollowup));
+  // Histórico concluídos (últimos 30 dias)
+  const d30=_addDias(td,-30);
+  const historico=fups.filter(f=>f.status!=='pendente'&&(f.dataConcluido||'')>=d30).sort((a,b)=>(b.dataConcluido||'').localeCompare(a.dataConcluido||''));
+
+  const _cardFup=(f,destaque)=>{
+    const atrasado=f.dataFollowup<td;
+    const cor=atrasado?'var(--danger)':f.dataFollowup===td?'var(--warn)':'var(--info)';
+    return`<div style="background:var(--card);border-radius:8px;padding:12px;margin-bottom:8px;border-left:3px solid ${cor}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:13px">${f.pacNome}</div>
+          <div style="font-size:11px;color:var(--muted)">${f.orcDesc} — <strong>${fmt(f.orcValor)}</strong></div>
+          <div style="font-size:11px;margin-top:3px"><span class="badge b-gray">${f.label}</span></div>
+          ${f.responsavel?`<div style="font-size:11px;color:var(--muted);margin-top:2px">👤 ${f.responsavel}</div>`:''}
+          ${f.obs?`<div style="font-size:11px;color:var(--muted);font-style:italic;margin-top:2px">"${f.obs}"</div>`:''}
+        </div>
+        <div style="text-align:right;min-width:80px">
+          <div style="font-weight:700;font-size:12px;color:${cor}">${atrasado?'⚠️ '+fmtD(f.dataFollowup):f.dataFollowup===td?'📅 Hoje':fmtD(f.dataFollowup)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn btn-s btn-xs" onclick="concluirFollowup('${f.id}','feito')">✅ Feito</button>
+        <button class="btn btn-o btn-xs" onclick="concluirFollowup('${f.id}','pulado')">⏭ Pular</button>
+        <button class="btn btn-o btn-xs" onclick="reagendarFollowup('${f.id}')">📅 Reagendar</button>
+        <button class="btn btn-o btn-xs" onclick="abrirProntuario('${f.pacId}','financeiro')">👤 Ver</button>
+      </div>
+    </div>`;
+  };
+
+  area.innerHTML=`
+    <div class="g2" style="margin-bottom:16px;align-items:start">
+      <!-- Coluna esquerda: urgentes + próximos -->
+      <div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="font-weight:700;font-size:14px;color:var(--danger);margin-bottom:12px">🔥 Hoje e atrasados (${urgentes.length})</div>
+          ${urgentes.length===0?'<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px">Nenhum follow-up urgente 🎉</div>':urgentes.map(f=>_cardFup(f,true)).join('')}
+        </div>
+        <div class="card">
+          <div style="font-weight:700;font-size:14px;color:var(--info);margin-bottom:12px">📅 Próximos 7 dias (${proximos.length})</div>
+          ${proximos.length===0?'<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px">Agenda limpa para a semana</div>':proximos.map(f=>_cardFup(f,false)).join('')}
+        </div>
+      </div>
+
+      <!-- Coluna direita: config cadência + histórico -->
+      <div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="font-weight:700;font-size:14px;color:var(--teal-d);margin-bottom:12px">⚙️ Cadência e Responsáveis</div>
+          ${!isMaster?'<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Somente master pode editar.</div>':''}
+          <div id="cadenciaRows">
+            ${cfg.map((c,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+              <span style="font-size:12px;min-width:130px;color:var(--muted)">${c.label}</span>
+              <select data-ci="${i}" class="cadResp" style="flex:1;min-width:120px;border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;background:var(--card);color:var(--text)" ${!isMaster?'disabled':''}>
+                <option value="">— Sem responsável —</option>
+                ${equipe.map(n=>`<option value="${n}" ${c.responsavel===n?'selected':''}>${n}</option>`).join('')}
+              </select>
+            </div>`).join('')}
+          </div>
+          ${isMaster?`<button class="btn btn-p btn-sm" style="width:100%;margin-top:8px" onclick="salvarCadencia()">💾 Salvar cadência</button>`:''}
+        </div>
+
+        <div class="card">
+          <div style="font-weight:700;font-size:14px;color:var(--teal-d);margin-bottom:12px">📋 Histórico recente (${historico.length})</div>
+          ${historico.length===0?'<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px">Nenhum follow-up concluído nos últimos 30 dias</div>':historico.slice(0,20).map(f=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:6px;background:var(--bg);margin-bottom:5px">
+              <div>
+                <div style="font-size:12px;font-weight:600">${f.pacNome}</div>
+                <div style="font-size:11px;color:var(--muted)">${f.label}</div>
+              </div>
+              <div style="text-align:right">
+                <span class="badge ${f.status==='feito'?'b-green':'b-gray'}">${f.status==='feito'?'✅ Feito':'⏭ Pulado'}</span>
+                <div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtD(f.dataConcluido)}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function salvarCadencia(){
+  const cfg=getFollowupConfig();
+  document.querySelectorAll('.cadResp').forEach(sel=>{
+    const i=parseInt(sel.dataset.ci);
+    if(cfg[i])cfg[i].responsavel=sel.value||'';
+  });
+  saveFollowupConfig(cfg);
+  alert('Cadência salva!');
+}
+
+// ══ F4: LISTA DE ATAQUE ══
+function renderListaAtaque(area){
+  const td=today();
+  const pacs=getPacs();
+  const lancs=getLancs();
+  const retornos=getRetornos();
+
+  // Ticket médio global (últimos 90 dias) para estimar potencial
+  const d90=_addDias(td,-90);
+  const receitasRec=lancs.filter(l=>l.tipo==='receita'&&l.status==='pago'&&(l.data||'')>=d90);
+  const ticketMedio=receitasRec.length>0?receitasRec.reduce((s,l)=>s+l.valor,0)/receitasRec.length:800;
+
+  // ── Segmentos ──
+  const segmentos=[];
+
+  // 1. Orçamentos enviados há mais de 3 dias sem resposta
+  const orcsPendentes=pacs.flatMap(p=>(p.orcamentos||[])
+    .filter(o=>_getStatusFunil(o)==='enviado'&&(o.data||'')<_addDias(td,-3))
+    .map(o=>({pac:p,orc:o,potencial:o.total})));
+  segmentos.push({id:'orc_parado',icone:'⏳',titulo:'Orçamentos sem resposta (+3 dias)',cor:'var(--warn)',
+    desc:'Enviados há mais de 3 dias e ainda sem aceite ou resposta.',
+    itens:orcsPendentes.map(x=>({pacId:x.pac.id,pacNome:x.pac.nome,pacTel:x.pac.tel,detalhe:x.orc.desc,potencial:x.orc.total,extra:fmtD(x.orc.data)})),
+    potencial:orcsPendentes.reduce((s,x)=>s+x.potencial,0)});
+
+  // 2. Orçamentos em negociação
+  const orcsNegoc=pacs.flatMap(p=>(p.orcamentos||[])
+    .filter(o=>_getStatusFunil(o)==='negociacao')
+    .map(o=>({pac:p,orc:o})));
+  segmentos.push({id:'negociacao',icone:'🤝',titulo:'Em negociação — fechar agora',cor:'var(--teal)',
+    desc:'Já demonstraram interesse. Momento de fechar.',
+    itens:orcsNegoc.map(x=>({pacId:x.pac.id,pacNome:x.pac.nome,pacTel:x.pac.tel,detalhe:x.orc.desc,potencial:x.orc.total,extra:fmtD(x.orc.data)})),
+    potencial:orcsNegoc.reduce((s,x)=>s+x.orc.total,0)});
+
+  // 3. Retornos vencidos
+  const retVencidos=retornos.filter(r=>r.status==='pendente'&&r.dataRetorno<td);
+  const retVencPacs=[];const _retVencSet=new Set();
+  retVencidos.forEach(r=>{if(!_retVencSet.has(r.pacId)){_retVencSet.add(r.pacId);const p=pacs.find(x=>x.id===r.pacId);if(p)retVencPacs.push({pacId:p.id,pacNome:p.nome,pacTel:p.tel,detalhe:(r.label||r.tipo||'retorno')+' — '+fmtD(r.dataRetorno),potencial:ticketMedio,extra:fmtD(r.dataRetorno)});}});
+  segmentos.push({id:'ret_vencido',icone:'🔔',titulo:'Retornos vencidos',cor:'var(--danger)',
+    desc:'Pacientes que deveriam ter retornado e não compareceram.',
+    itens:retVencPacs,potencial:retVencPacs.length*ticketMedio});
+
+  // 4. Pacientes com orçamento parcialmente pago
+  const parciais=pacs.flatMap(p=>(p.orcamentos||[])
+    .filter(o=>o.status==='aceite'&&o.entrada>0&&o.entrada<(o.liquidoClinica||o.total))
+    .map(o=>({pac:p,orc:o,saldo:(o.liquidoClinica||o.total)-(o.entrada||0)})));
+  segmentos.push({id:'parcial',icone:'💰',titulo:'Saldo pendente — finalizar pagamento',cor:'var(--gold)',
+    desc:'Pagaram entrada mas ainda têm saldo em aberto.',
+    itens:parciais.map(x=>({pacId:x.pac.id,pacNome:x.pac.nome,pacTel:x.pac.tel,detalhe:x.orc.desc,potencial:x.saldo,extra:'Saldo: '+fmt(x.saldo)})),
+    potencial:parciais.reduce((s,x)=>s+x.saldo,0)});
+
+  // 5. Orçamentos perdidos (possível reativação)
+  const perdidos=pacs.flatMap(p=>(p.orcamentos||[])
+    .filter(o=>_getStatusFunil(o)==='perdido'&&(o.dataPerdido||o.data||'')>=_addDias(td,-60))
+    .map(o=>({pac:p,orc:o})));
+  segmentos.push({id:'perdido_reativ',icone:'♻️',titulo:'Perdidos recentes — reativar',cor:'var(--muted)',
+    desc:'Orçamentos perdidos nos últimos 60 dias. Vale uma nova tentativa.',
+    itens:perdidos.map(x=>({pacId:x.pac.id,pacNome:x.pac.nome,pacTel:x.pac.tel,detalhe:x.orc.desc+(x.orc.motivoPerda?' | Motivo: '+x.orc.motivoPerda:''),potencial:x.orc.total*0.7,extra:fmtD(x.orc.dataPerdido||x.orc.data)})),
+    potencial:perdidos.reduce((s,x)=>s+x.orc.total*0.7,0)});
+
+  // 6. Inativos (nenhum atendimento nos últimos 90 dias)
+  const pacAtivos=new Set(lancs.filter(l=>l.tipo==='receita'&&(l.data||'')>=d90).map(l=>l.pacId).filter(Boolean));
+  const inativos=pacs.filter(p=>p.id&&!pacAtivos.has(p.id)&&p.cadastro&&p.cadastro<_addDias(td,-90));
+  segmentos.push({id:'inativo',icone:'💤',titulo:'Pacientes inativos (+90 dias)',cor:'var(--info)',
+    desc:'Cadastrados há mais de 90 dias sem nenhuma receita registrada no período.',
+    itens:inativos.slice(0,30).map(p=>({pacId:p.id,pacNome:p.nome,pacTel:p.tel,detalhe:'Último contato desconhecido',potencial:ticketMedio,extra:'Cadastro: '+fmtD(p.cadastro)})),
+    potencial:Math.min(inativos.length,30)*ticketMedio});
+
+  // 7. Aniversariantes do mês
+  const mesAtual=String(new Date().getMonth()+1).padStart(2,'0');
+  const aniversariantes=pacs.filter(p=>p.nasc&&p.nasc.substring(5,7)===mesAtual);
+  segmentos.push({id:'aniversario',icone:'🎂',titulo:'Aniversariantes do mês',cor:'var(--pink,#ec4899)',
+    desc:'Ótima oportunidade para oferecer um presente (desconto, brinde ou mensagem personalizada).',
+    itens:aniversariantes.map(p=>({pacId:p.id,pacNome:p.nome,pacTel:p.tel,detalhe:'Aniversário: '+fmtD(p.nasc),potencial:ticketMedio,extra:p.nasc?p.nasc.substring(5,10):''})),
+    potencial:aniversariantes.length*ticketMedio*0.5});
+
+  // 8. Leads não convertidos (CRM)
+  const leads=ls('leads',[]).filter(l=>l.estagio!=='concluido'&&l.estagio!=='aprovado');
+  segmentos.push({id:'leads_abertos',icone:'🎯',titulo:'Leads não convertidos (CRM)',cor:'var(--teal-d)',
+    desc:'Leads no funil do CRM que ainda não se tornaram pacientes.',
+    itens:leads.slice(0,20).map(l=>({pacId:null,pacNome:l.nome,pacTel:l.tel||l.contato||'',detalhe:l.interesse||l.estagio||'',potencial:ticketMedio,extra:l.estagio||''})),
+    potencial:leads.length*ticketMedio*0.3});
+
+  const totalPotencial=segmentos.reduce((s,sg)=>s+sg.potencial,0);
+  const totalContatos=segmentos.reduce((s,sg)=>s+sg.itens.length,0);
+
+  // Estado de expansão
+  if(!window._ataqueAberto)window._ataqueAberto={};
+
+  area.innerHTML=`
+    <!-- Resumo -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
+      <div class="card" style="text-align:center;padding:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Contatos mapeados</div>
+        <div style="font-weight:700;font-size:20px;color:var(--teal-d)">${totalContatos}</div>
+      </div>
+      <div class="card" style="text-align:center;padding:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Potencial estimado</div>
+        <div style="font-weight:700;font-size:18px;color:var(--success)">${fmt(totalPotencial)}</div>
+      </div>
+      <div class="card" style="text-align:center;padding:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Segmentos ativos</div>
+        <div style="font-weight:700;font-size:20px;color:var(--warn)">${segmentos.filter(s=>s.itens.length>0).length}</div>
+      </div>
+      <div class="card" style="text-align:center;padding:12px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Ticket médio (90d)</div>
+        <div style="font-weight:700;font-size:16px;color:var(--text)">${fmt(ticketMedio)}</div>
+      </div>
+    </div>
+
+    <!-- Segmentos -->
+    <div id="ataqueSegmentos">
+    ${segmentos.map(sg=>{
+      const aberto=window._ataqueAberto[sg.id]!==false;
+      return`<div class="card" style="margin-bottom:12px;border-left:4px solid ${sg.cor}">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:10px" onclick="toggleAtaque('${sg.id}')">
+          <div style="display:flex;align-items:center;gap:10px;flex:1">
+            <span style="font-size:20px">${sg.icone}</span>
+            <div>
+              <div style="font-weight:700;font-size:13px">${sg.titulo} <span style="font-size:12px;background:${sg.cor}22;color:${sg.cor};padding:1px 8px;border-radius:12px;margin-left:4px">${sg.itens.length}</span></div>
+              <div style="font-size:11px;color:var(--muted)">${sg.desc}</div>
+            </div>
+          </div>
+          <div style="text-align:right;min-width:100px">
+            <div style="font-weight:700;font-size:13px;color:var(--success)">${fmt(sg.potencial)}</div>
+            <div style="font-size:10px;color:var(--muted)">potencial</div>
+          </div>
+          <span style="font-size:16px;color:var(--muted);transition:.2s">${aberto?'▲':'▼'}</span>
+        </div>
+        ${aberto&&sg.itens.length>0?`<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+          ${sg.itens.map(it=>{
+            const tel=(it.pacTel||'').replace(/\D/g,'');
+            const telLink=tel?(tel.startsWith('55')?tel:'55'+tel):'';
+            return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--bg);margin-bottom:5px;flex-wrap:wrap;gap:6px">
+              <div style="flex:1;min-width:140px">
+                <div style="font-weight:600;font-size:12px">${it.pacNome}</div>
+                <div style="font-size:11px;color:var(--muted)">${it.detalhe}</div>
+                ${it.extra?`<div style="font-size:10px;color:var(--muted)">${it.extra}</div>`:''}
+              </div>
+              <div style="font-weight:700;font-size:12px;color:var(--success)">${fmt(it.potencial)}</div>
+              <div style="display:flex;gap:4px">
+                ${telLink?`<button class="btn btn-s btn-xs" onclick="window.open('https://wa.me/${telLink}','_blank')" title="WhatsApp">💬</button>`:''}
+                ${it.pacId?`<button class="btn btn-o btn-xs" onclick="abrirProntuario('${it.pacId}','financeiro')" title="Ver prontuário">👤</button>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`:''}
+        ${aberto&&sg.itens.length===0?`<div style="margin-top:10px;text-align:center;font-size:12px;color:var(--success);padding:10px">✅ Nenhum paciente neste segmento no momento</div>`:''}
+      </div>`;
+    }).join('')}
+    </div>
+  `;
+}
+
+function toggleAtaque(id){
+  if(!window._ataqueAberto)window._ataqueAberto={};
+  window._ataqueAberto[id]=window._ataqueAberto[id]===false?true:false;
+  renderComercial();
+}
+
+// ══ F6: ACOMPANHAMENTO SEMANAL + TAXAS REAIS ══
+function _inicioSemana(dataStr){
+  const d=new Date(dataStr+'T12:00:00');
+  const dow=d.getDay();// 0=dom
+  d.setDate(d.getDate()-dow);
+  return d.toISOString().split('T')[0];
+}
+function _fimSemana(inicioStr){
+  const d=new Date(inicioStr+'T12:00:00');d.setDate(d.getDate()+6);
+  return d.toISOString().split('T')[0];
+}
+function _semanaLabel(inicioStr){
+  const f=_fimSemana(inicioStr);
+  return`${fmtD(inicioStr)} – ${fmtD(f)}`;
+}
+
+function _metricasSemana(ini,fim){
+  const lancs=getLancs();
+  const pacs=getPacs();
+  const leads=ls('leads',[]);
+
+  const faturamento=lancs.filter(l=>l.tipo==='receita'&&l.status==='pago'&&(l.data||'')>=ini&&(l.data||'')<=fim).reduce((s,l)=>s+l.valor,0);
+  const novosPacs=pacs.filter(p=>(p.cadastro||'')>=ini&&(p.cadastro||'')<=fim).length;
+  const orcsAbertos=pacs.flatMap(p=>(p.orcamentos||[]).filter(o=>(o.data||'')>=ini&&(o.data||'')<=fim)).length;
+  const orcsAceitos=pacs.flatMap(p=>(p.orcamentos||[]).filter(o=>(o.data||'')>=ini&&(o.data||'')<=fim&&(o.status==='aceite'||o.status==='pago'||o.status==='parcial'))).length;
+  const novosLeads=leads.filter(l=>(l.data||'')>=ini&&(l.data||'')<=fim).length;
+  const followupsConcluidos=getFollowups().filter(f=>f.status==='feito'&&(f.dataConcluido||'')>=ini&&(f.dataConcluido||'')<=fim).length;
+  const txConv=orcsAbertos>0?Math.round(orcsAceitos/orcsAbertos*100):0;
+  return{faturamento,novosPacs,orcsAbertos,orcsAceitos,novosLeads,followupsConcluidos,txConv};
+}
+
+function renderSemanaComercial(area){
+  const td=today();
+  const mes=_mesAtualStr();
+  const meta=_getMeta(mes);
+  const metaTotal=(meta.metaHOF||0)+(meta.metaOdonto||0);
+  const metaSemanal=meta.semanas>0?metaTotal/meta.semanas:0;
+
+  // Semanas: atual + 7 anteriores
+  const semanas=[];
+  let ini=_inicioSemana(td);
+  for(let i=0;i<8;i++){
+    const fim=_fimSemana(ini);
+    semanas.push({ini,fim,label:i===0?'Esta semana':i===1?'Semana passada':_semanaLabel(ini),..._metricasSemana(ini,fim)});
+    const d=new Date(ini+'T12:00:00');d.setDate(d.getDate()-7);ini=d.toISOString().split('T')[0];
+  }
+  const atual=semanas[0];
+  const anterior=semanas[1];
+
+  // Taxas reais de conversão (acumulado do mês)
+  const pacs=getPacs();
+  const leads=ls('leads',[]);
+  const todosOrcs=pacs.flatMap(p=>(p.orcamentos||[]));
+  const orcsMes=todosOrcs.filter(o=>(o.data||'').startsWith(mes));
+  const orcsAceitosMes=orcsMes.filter(o=>o.status==='aceite'||o.status==='pago'||o.status==='parcial');
+  const orcsPagosMes=orcsMes.filter(o=>o.status==='pago');
+  const leadsMes=leads.filter(l=>(l.data||'').startsWith(mes));
+  const leadsContatados=leadsMes.filter(l=>l.estagio!=='lead').length;
+  const leadsComOrc=leadsMes.filter(l=>['orcamento','aprovado','tratamento','concluido'].includes(l.estagio)).length;
+
+  const txLC=leadsMes.length>0?Math.round(leadsContatados/leadsMes.length*100):0;
+  const txLO=leadsMes.length>0?Math.round(leadsComOrc/leadsMes.length*100):0;
+  const txOA=orcsMes.length>0?Math.round(orcsAceitosMes.length/orcsMes.length*100):0;
+  const txAP=orcsAceitosMes.length>0?Math.round(orcsPagosMes.length/orcsAceitosMes.length*100):0;
+
+  // Mini sparkline textual (barras de texto)
+  const maxFat=Math.max(...semanas.map(s=>s.faturamento),1);
+  const _barra=(v,max,w=12)=>{
+    const filled=Math.round(v/max*w);
+    return'█'.repeat(filled)+'░'.repeat(w-filled);
+  };
+
+  const _delta=(a,b)=>{
+    if(!b)return'';
+    const d=((a-b)/b*100);
+    if(Math.abs(d)<1)return'<span style="color:var(--muted)">↔ estável</span>';
+    return d>0?`<span style="color:var(--success)">▲ ${d.toFixed(0)}%</span>`:`<span style="color:var(--danger)">▼ ${Math.abs(d).toFixed(0)}%</span>`;
+  };
+
+  const _kpi=(label,val,anterior,fmt2,meta2)=>{
+    const pct=meta2>0?Math.min(100,Math.round(val/meta2*100)):null;
+    const cor=pct===null?'var(--text)':pct>=100?'var(--success)':pct>=70?'var(--warn)':'var(--danger)';
+    return`<div style="background:var(--bg);border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${label}</div>
+      <div style="font-weight:700;font-size:18px;color:${cor}">${fmt2(val)}</div>
+      <div style="font-size:11px;margin-top:3px">${_delta(val,anterior)}</div>
+      ${pct!==null?`<div style="margin-top:5px;background:var(--border);border-radius:4px;height:4px"><div style="width:${pct}%;background:${cor};height:4px;border-radius:4px"></div></div>`:''}
+    </div>`;
+  };
+
+  const _txBarra=(label,pct,meta2,desc)=>{
+    const cor=pct>=meta2?'var(--success)':pct>=(meta2*0.7)?'var(--warn)':'var(--danger)';
+    return`<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:600">${label}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--muted)">${desc}</span>
+          <span style="font-weight:700;font-size:14px;color:${cor}">${pct}%</span>
+          <span style="font-size:10px;color:var(--muted)">meta: ${meta2}%</span>
+        </div>
+      </div>
+      <div style="background:var(--border);border-radius:6px;height:8px">
+        <div style="width:${Math.min(100,pct)}%;background:${cor};height:8px;border-radius:6px;transition:width .4s"></div>
+      </div>
+    </div>`;
+  };
+
+  area.innerHTML=`
+    <!-- KPIs semana atual vs anterior -->
+    <div style="margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-weight:700;font-size:14px;color:var(--teal-d)">📅 Semana atual vs anterior</div>
+      ${metaSemanal>0?`<div style="font-size:12px;color:var(--muted)">Meta semanal: <strong>${fmt(metaSemanal)}</strong></div>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px">
+      ${_kpi('Faturamento',atual.faturamento,anterior.faturamento,fmt,metaSemanal)}
+      ${_kpi('Orç. abertos',atual.orcsAbertos,anterior.orcsAbertos,v=>v,0)}
+      ${_kpi('Orç. aceitos',atual.orcsAceitos,anterior.orcsAceitos,v=>v,0)}
+      ${_kpi('Novos pacientes',atual.novosPacs,anterior.novosPacs,v=>v,0)}
+      ${_kpi('Novos leads',atual.novosLeads,anterior.novosLeads,v=>v,0)}
+      ${_kpi('Follow-ups feitos',atual.followupsConcluidos,anterior.followupsConcluidos,v=>v,0)}
+    </div>
+
+    <!-- Taxas reais do mês -->
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-weight:700;font-size:14px;color:var(--teal-d);margin-bottom:16px">📊 Taxas reais de conversão — ${mes}</div>
+      ${_txBarra('Lead → Contato',txLC,meta.txComparecimento||80,`${leadsContatados}/${leadsMes.length} leads`)}
+      ${_txBarra('Lead → Orçamento',txLO,meta.txAgendamento||30,`${leadsComOrc}/${leadsMes.length} leads`)}
+      ${_txBarra('Orçamento → Aceito',txOA,meta.txFechamento||40,`${orcsAceitosMes.length}/${orcsMes.length} orç.`)}
+      ${_txBarra('Aceito → Pago',txAP,80,`${orcsPagosMes.length}/${orcsAceitosMes.length} aceitos`)}
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Metas de % configuradas em 🎯 Metas.</div>
+    </div>
+
+    <!-- Histórico 8 semanas -->
+    <div class="card">
+      <div style="font-weight:700;font-size:14px;color:var(--teal-d);margin-bottom:12px">📈 Histórico — últimas 8 semanas</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--bg)">
+            <th style="padding:8px;text-align:left;white-space:nowrap">Semana</th>
+            <th style="padding:8px;text-align:right">Faturamento</th>
+            <th style="padding:8px;text-align:center">Orç. criados</th>
+            <th style="padding:8px;text-align:center">Aceitos</th>
+            <th style="padding:8px;text-align:center">Tx. conv.</th>
+            <th style="padding:8px;text-align:left;min-width:120px">Barra</th>
+          </tr></thead>
+          <tbody>
+            ${semanas.map((s,i)=>{
+              const cor=s.faturamento>=(metaSemanal*0.9)?'var(--success)':s.faturamento>=(metaSemanal*0.6)?'var(--warn)':'var(--muted)';
+              return`<tr style="border-top:1px solid var(--border);${i===0?'font-weight:700;background:var(--teal-p)':''}">
+                <td style="padding:8px;white-space:nowrap;color:${i===0?'var(--teal-d)':'var(--text)'}">${s.label}</td>
+                <td style="padding:8px;text-align:right;font-weight:700;color:${cor}">${fmt(s.faturamento)}</td>
+                <td style="padding:8px;text-align:center">${s.orcsAbertos}</td>
+                <td style="padding:8px;text-align:center">${s.orcsAceitos}</td>
+                <td style="padding:8px;text-align:center;color:${s.txConv>=40?'var(--success)':s.txConv>=20?'var(--warn)':'var(--danger)'}">${s.txConv}%</td>
+                <td style="padding:8px"><span style="font-family:monospace;font-size:11px;color:${cor}">${_barra(s.faturamento,maxFat,10)}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+          ${metaSemanal>0?`<tfoot><tr style="background:var(--bg);font-size:11px;color:var(--muted)"><td colspan="6" style="padding:6px 8px">Meta semanal: ${fmt(metaSemanal)}</td></tr></tfoot>`:''}
+        </table>
+      </div>
+    </div>
+  `;
+}
 
 function _calcMix(mixArr,metaVal){
   const totPacs=mixArr.reduce((s,r)=>s+Math.ceil((metaVal*(parseFloat(r.pct)||0)/100)/(parseFloat(r.ticket)||1)),0);
@@ -10010,14 +10918,20 @@ function _calcMix(mixArr,metaVal){
   return{totPacs,hNec,fatSe,somaP};
 }
 
+function _procSelectOpts(area,selId){
+  const procs=getProcs().filter(p=>area==='hf'?(p.esp==='hf'||p.esp==='ambos'):(p.esp==='odonto'||p.esp==='ambos'));
+  if(!procs.length)return`<option value="">— cadastre procedimentos primeiro —</option>`;
+  return`<option value="">Selecione...</option>`+procs.map(p=>`<option value="${p.id}" ${p.id===selId?'selected':''}>${p.nome}</option>`).join('');
+}
+
 function _mixTable(mix,metaVal,area,isMaster){
   const c=_calcMix(mix,metaVal);
-  const cols=isMaster?8:7;
+  const IS=`border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--card);color:var(--text)`;
   return`<div class="tw"><table>
     <thead><tr>
       <th>Procedimento</th>
       <th style="text-align:right">% da meta</th>
-      <th style="text-align:right">Ticket médio</th>
+      <th style="text-align:right">Ticket</th>
       <th style="text-align:right">Horas/pac</th>
       <th style="text-align:right">Fat. alvo</th>
       <th style="text-align:right">Pac. fechar</th>
@@ -10025,19 +10939,22 @@ function _mixTable(mix,metaVal,area,isMaster){
       ${isMaster?'<th></th>':''}
     </tr></thead>
     <tbody id="mixTbody_${area}">
-      ${mix.map((r,i)=>{
+      ${mix.map(r=>{
         const fatAlvo=metaVal*(parseFloat(r.pct)||0)/100;
         const pacs=Math.ceil(fatAlvo/(parseFloat(r.ticket)||1));
         const horas=pacs*(parseFloat(r.horasPorPac)||0);
-        return`<tr>
-          <td><input type="text" value="${r.proc}" ${!isMaster?'disabled':''} style="width:100%;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--card);color:var(--text)"></td>
-          <td><input type="number" value="${r.pct}" step="1" min="0" max="100" ${!isMaster?'disabled':''} style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)" oninput="atualizarResumoMix('${area}')"></td>
-          <td><input type="number" value="${r.ticket}" step="100" min="0" ${!isMaster?'disabled':''} style="width:80px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)"></td>
-          <td><input type="number" value="${r.horasPorPac}" step="0.5" min="0" ${!isMaster?'disabled':''} style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)"></td>
+        return`<tr data-proc-id="${r.procId||''}">
+          <td>${isMaster
+            ?`<select style="${IS};min-width:150px" onchange="_onMixProcChange(this,'${area}')">${_procSelectOpts(area,r.procId||'')}</select>`
+            :`<span style="font-size:12px">${r.proc||'—'}</span>`
+          }</td>
+          <td><input type="number" value="${r.pct}" step="1" min="0" max="100" ${!isMaster?'disabled':''} style="${IS};width:55px;text-align:right" oninput="atualizarResumoMix('${area}')"></td>
+          <td><input type="number" value="${r.ticket}" step="100" min="0" ${!isMaster?'disabled':''} style="${IS};width:75px;text-align:right"></td>
+          <td><input type="number" value="${parseFloat(r.horasPorPac||0).toFixed(2)}" step="0.25" min="0" ${!isMaster?'disabled':''} style="${IS};width:60px;text-align:right"></td>
           <td style="text-align:right;font-size:12px;color:var(--muted)">${fmt(fatAlvo)}</td>
           <td style="text-align:right;font-size:12px;font-weight:700">${pacs}</td>
           <td style="text-align:right;font-size:12px;color:var(--muted)">${horas.toFixed(1)}h</td>
-          ${isMaster?`<td><button class="btn btn-d btn-xs" onclick="this.closest('tr').remove()">🗑</button></td>`:''}
+          ${isMaster?`<td><button class="btn btn-d btn-xs" onclick="this.closest('tr').remove();atualizarResumoMix('${area}')">🗑</button></td>`:''}
         </tr>`;
       }).join('')}
     </tbody>
@@ -10053,6 +10970,53 @@ function _mixTable(mix,metaVal,area,isMaster){
   </table></div>`;
 }
 
+function _onMixProcChange(sel,area){
+  const tr=sel.closest('tr');if(!tr)return;
+  const procId=sel.value;
+  const proc=getProcs().find(p=>p.id===procId);
+  if(proc){
+    tr.dataset.procId=procId;
+    const inputs=tr.querySelectorAll('input');
+    if(inputs[1])inputs[1].value=(proc.valor||0);
+    if(inputs[2])inputs[2].value=parseFloat(((proc.dur||0)/60).toFixed(2));
+  }
+  atualizarResumoMix(area);
+}
+
+function _resumoCard(label,cor,meta,c,diasAtend,horasAtenDia,semanas,txFech,txComp,txAgend){
+  if(!meta&&!c.totPacs)return`<div class="card" style="opacity:.5"><div style="font-weight:700;font-size:13px;margin-bottom:8px;color:${cor}">${label}</div><div style="font-size:12px;color:var(--muted)">Meta não definida.</div></div>`;
+  const hDisp=(diasAtend||0)*(horasAtenDia||0);
+  const ocup=hDisp>0?c.hNec/hDisp:0;
+  const ticketMed=c.totPacs>0?meta/c.totPacs:0;
+  const fatDia=diasAtend>0?meta/diasAtend:0;
+  const pacSem=semanas>0?c.totPacs/semanas:0;
+  const leadsNec=txFech>0&&txComp>0&&txAgend>0?Math.ceil(c.totPacs/(txFech/100)/(txComp/100)/(txAgend/100)):0;
+  const ocCor=ocup>1?'var(--danger)':ocup>0.85?'var(--warn)':'var(--success)';
+  const rows=[
+    ['Meta',fmt(meta),cor],
+    ['Pac. a fechar',c.totPacs+' pac.'],
+    ['Ticket médio nec.',fmt(ticketMed)],
+    ['Fat. por dia',fmt(fatDia)],
+    ['Pac. por semana',pacSem.toFixed(1)+' pac.'],
+    ['Horas disponíveis',hDisp+'h'],
+    ['Horas necessárias',c.hNec.toFixed(1)+'h'],
+    ['Ocupação',Math.round(ocup*100)+'%',ocCor],
+    ['Leads necessários',leadsNec>0?leadsNec+' leads':'—'],
+  ];
+  return`<div class="card">
+    <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:${cor}">${label}</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      ${rows.map(([l,v,c2])=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-radius:5px;background:var(--bg)">
+        <span style="font-size:11px;color:var(--muted)">${l}</span>
+        <span style="font-weight:700;font-size:12px;color:${c2||'var(--text)'}">${v}</span>
+      </div>`).join('')}
+      <div style="padding:7px;border-radius:6px;text-align:center;font-weight:700;font-size:12px;margin-top:2px;background:${ocup>1?'#fde8e8':ocup>0.85?'#fff3cd':'#d4edda'};color:${ocCor}">
+        ${ocup>1?'🚨 Não cabe':ocup>0.85?'⚠️ Quase cheia':'✅ Cabe na agenda'}
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderMetasComercial(area){
   const isMaster=SESS?.user?.role==='master';
   const mes=_mesAtualStr();
@@ -10061,22 +11025,36 @@ function renderMetasComercial(area){
   const meta=_getMeta(selMes||mes);
   const metaTotal=(meta.metaHOF||0)+(meta.metaOdonto||0);
   const mixHF=_getMetaMix(selMes||mes,'hf');
-  const mixOdonto=_getMetaMix(selMes||mes,'odonto');
+  const mixOd=_getMetaMix(selMes||mes,'odonto');
   const cHF=_calcMix(mixHF,meta.metaHOF||0);
-  const cOd=_calcMix(mixOdonto,meta.metaOdonto||0);
-  const hDisp=(meta.diasAtend||0)*(meta.horasAtenDia||0);
-  const hNecTotal=cHF.hNec+cOd.hNec;
-  const ocup=hDisp>0?hNecTotal/hDisp:0;
-  const totPacsTotal=cHF.totPacs+cOd.totPacs;
-  const ticketMedNec=totPacsTotal>0?metaTotal/totPacsTotal:0;
-  const fatPorDia=meta.diasAtend>0?metaTotal/meta.diasAtend:0;
-  const pacsPoSem=meta.semanas>0?totPacsTotal/meta.semanas:0;
+  const cOd=_calcMix(mixOd,meta.metaOdonto||0);
+  const cTot={totPacs:cHF.totPacs+cOd.totPacs,hNec:cHF.hNec+cOd.hNec,fatSe:cHF.fatSe+cOd.fatSe,somaP:0};
+  const alertaHF=mixHF.length&&Math.abs(cHF.somaP-100)>0.01?`<div style="background:#fff3cd;border:1px solid var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;color:#856404;margin-bottom:8px">⚠️ Mix HOF soma ${cHF.somaP.toFixed(1)}% — ajuste para 100%.</div>`:'';
+  const alertaOd=mixOd.length&&Math.abs(cOd.somaP-100)>0.01?`<div style="background:#fff3cd;border:1px solid var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;color:#856404;margin-bottom:8px">⚠️ Mix Odonto soma ${cOd.somaP.toFixed(1)}% — ajuste para 100%.</div>`:'';
+  const iS=`border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;text-align:right;outline:none;background:var(--card);color:var(--text);width:110px`;
+  const iD=`border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;text-align:right;outline:none;background:var(--bg);color:var(--text);width:110px`;
 
-  const alertaHF=Math.abs(cHF.somaP-100)>0.01&&(meta.metaHOF||0)>0?`<div style="background:#fff3cd;border:1px solid var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;color:#856404;margin-bottom:8px">⚠️ Mix HOF soma ${cHF.somaP.toFixed(1)}% — ajuste para 100%.</div>`:'';
-  const alertaOd=Math.abs(cOd.somaP-100)>0.01&&(meta.metaOdonto||0)>0?`<div style="background:#fff3cd;border:1px solid var(--warn);border-radius:8px;padding:8px 12px;font-size:12px;color:#856404;margin-bottom:8px">⚠️ Mix Odonto soma ${cOd.somaP.toFixed(1)}% — ajuste para 100%.</div>`:'';
-  const alertaOcup=ocup>1?`<div style="background:#fde8e8;border:1px solid var(--danger);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--danger);margin-bottom:12px">🚨 Agenda não comporta esta meta: suba o ticket, abra mais dias ou reduza horas por paciente.</div>`:ocup>0.85?`<div style="background:#fff3cd;border:1px solid var(--warn);border-radius:8px;padding:10px 14px;font-size:13px;color:#856404;margin-bottom:12px">⚠️ Agenda quase cheia (${Math.round(ocup*100)}%): priorize procedimentos de ticket alto.</div>`:'';
-
-  const inputStyle=(en)=>`border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:13px;text-align:right;outline:none;background:${en?'var(--card)':'var(--bg)'};color:var(--text);width:120px`;
+  const paramBlock=(suf,metaVal,metaId,metaCor,title)=>`
+    <div class="card">
+      <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:${metaCor}">${title}</div>
+      ${!isMaster?'<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Somente master pode editar.</div>':''}
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:6px;background:var(--bg);border-left:4px solid ${metaCor}">
+          <label style="font-size:12px;font-weight:600">Meta (R$)</label>
+          <input type="number" id="${metaId}" value="${metaVal}" step="1000" ${!isMaster?'disabled':''} style="${isMaster?iS:iD}" oninput="atualizarMetaTotal()">
+        </div>
+        ${[
+          {id:`cmDias${suf}`,label:'Dias atend./mês',val:meta[`diasAtend${suf}`]||20,step:1},
+          {id:`cmHoras${suf}`,label:'Horas atend./dia',val:meta[`horasAtenDia${suf}`]||4,step:0.5},
+          {id:`cmTxFech${suf}`,label:'Tx. fechamento (%)',val:meta[`txFech${suf}`]||40,step:1},
+          {id:`cmTxComp${suf}`,label:'Tx. comparecimento (%)',val:meta[`txComp${suf}`]||80,step:1},
+          {id:`cmTxAgend${suf}`,label:'Tx. agendamento (%)',val:meta[`txAgend${suf}`]||30,step:1},
+        ].map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 10px;border-radius:6px;background:var(--bg)">
+          <label style="font-size:12px;flex:1">${f.label}</label>
+          <input type="number" id="${f.id}" value="${f.val}" step="${f.step}" ${!isMaster?'disabled':''} style="${isMaster?iS:iD}">
+        </div>`).join('')}
+      </div>
+    </div>`;
 
   area.innerHTML=`
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
@@ -10084,67 +11062,45 @@ function renderMetasComercial(area){
       <select id="comMetaMes" style="font-size:13px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--card);color:var(--text)" onchange="renderComercial()">
         ${meses.map(m=>`<option value="${m}" ${(selMes||mes)===m?'selected':''}>${m}</option>`).join('')}
       </select>
+      ${isMaster?`<button class="btn btn-p btn-xs" onclick="salvarMeta()">💾 Salvar Parâmetros</button>`:''}
     </div>
-    ${alertaOcup}
 
-    <!-- Metas por área + parâmetros -->
-    <div class="g2" style="margin-bottom:16px">
+    <!-- Semanas (compartilhado) -->
+    <div class="card" style="margin-bottom:16px;padding:12px 16px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600">Semanas no mês:</span>
+        <input type="number" id="cmSemanas" value="${meta.semanas||4}" step="1" min="1" max="6" ${!isMaster?'disabled':''} style="${isMaster?iS:iD};width:70px">
+        <span style="font-size:12px;color:var(--muted)">— Meta Total: <strong id="cmMetaTotal" style="color:var(--teal-d)">${fmt(metaTotal)}</strong></span>
+      </div>
+    </div>
+
+    <!-- Parâmetros HOF | Odonto | Resumo Total -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px">
+      ${paramBlock('HOF',meta.metaHOF||0,'cmMetaHOF','var(--teal-d)','✨ HOF — Parâmetros')}
+      ${paramBlock('Od',meta.metaOdonto||0,'cmMetaOdonto','var(--info)','🦷 Odontologia — Parâmetros')}
+      <!-- Resumo total -->
       <div class="card">
-        <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">🎯 Metas e Parâmetros</div>
-        ${!isMaster?'<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Visualização — somente master pode editar.</div>':''}
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--bg);border-left:4px solid var(--teal)">
-            <label style="font-size:13px;font-weight:600">✨ Meta HOF (R$)</label>
-            <input type="number" id="cmMetaHOF" value="${meta.metaHOF||0}" step="1000" ${!isMaster?'disabled':''} style="${inputStyle(isMaster)}">
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--bg);border-left:4px solid var(--info)">
-            <label style="font-size:13px;font-weight:600">🦷 Meta Odontologia (R$)</label>
-            <input type="number" id="cmMetaOdonto" value="${meta.metaOdonto||0}" step="1000" ${!isMaster?'disabled':''} style="${inputStyle(isMaster)}" oninput="atualizarMetaTotal()">
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;background:var(--teal-p);border-left:4px solid var(--teal-d)">
-            <label style="font-size:13px;font-weight:700;color:var(--teal-d)">📊 Meta Total</label>
-            <span id="cmMetaTotal" style="font-weight:700;font-size:16px;color:var(--teal-d)">${fmt(metaTotal)}</span>
-          </div>
-          <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--teal-d)">📊 Total Combinado</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
           ${[
-            {id:'cmDias',label:'Dias de atendimento no mês',val:meta.diasAtend,step:1},
-            {id:'cmHoras',label:'Horas de atendimento por dia',val:meta.horasAtenDia,step:0.5},
-            {id:'cmSemanas',label:'Semanas de atendimento',val:meta.semanas,step:1},
-            {id:'cmTxFech',label:'Taxa de fechamento (%)',val:meta.txFechamento,step:1},
-            {id:'cmTxComp',label:'Taxa de comparecimento (%)',val:meta.txComparecimento,step:1},
-            {id:'cmTxAgend',label:'Taxa de agendamento (%)',val:meta.txAgendamento,step:1},
-          ].map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:6px;background:var(--bg)">
-            <label style="font-size:13px;flex:1">${f.label}</label>
-            <input type="number" id="${f.id}" value="${f.val}" step="${f.step}" ${!isMaster?'disabled':''} style="${inputStyle(isMaster)}">
+            ['Meta Total',fmt(metaTotal),'var(--teal-d)'],
+            ['Pac. HOF',cHF.totPacs+' pac.','var(--teal)'],
+            ['Pac. Odonto',cOd.totPacs+' pac.','var(--info)'],
+            ['Total pac.',cTot.totPacs+' pac.'],
+            ['Ticket médio total',fmt(cTot.totPacs>0?metaTotal/cTot.totPacs:0)],
+            ['Total horas nec.',cTot.hNec.toFixed(1)+'h'],
+          ].map(([l,v,c2])=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-radius:5px;background:var(--bg)">
+            <span style="font-size:11px;color:var(--muted)">${l}</span>
+            <span style="font-weight:700;font-size:12px;color:${c2||'var(--text)'}">${v}</span>
           </div>`).join('')}
         </div>
-        ${isMaster?`<button class="btn btn-p" style="width:100%;margin-top:14px" onclick="salvarMeta()">💾 Salvar Parâmetros</button>`:''}
       </div>
+    </div>
 
-      <!-- Resumo calculado -->
-      <div class="card">
-        <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">📊 Resumo Calculado</div>
-        <div style="display:flex;flex-direction:column;gap:7px">
-          ${[
-            {label:'Meta Total',val:fmt(metaTotal),cor:'var(--teal-d)'},
-            {label:'Pacientes a fechar (total)',val:totPacsTotal+' pac.'},
-            {label:'  → HOF',val:cHF.totPacs+' pac.',small:true},
-            {label:'  → Odonto',val:cOd.totPacs+' pac.',small:true},
-            {label:'Ticket médio necessário',val:fmt(ticketMedNec)},
-            {label:'Faturamento por dia',val:fmt(fatPorDia)},
-            {label:'Pacientes por semana',val:pacsPoSem.toFixed(1)+' pac.'},
-            {label:'Horas disponíveis',val:hDisp+'h'},
-            {label:'Horas necessárias',val:hNecTotal.toFixed(1)+'h'},
-            {label:'Ocupação da agenda',val:Math.round(ocup*100)+'%',cor:ocup>1?'var(--danger)':ocup>0.85?'var(--warn)':'var(--success)'},
-          ].map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:${r.small?'3px 10px':'6px 10px'};border-radius:6px;background:${r.small?'transparent':'var(--bg)'}">
-            <span style="font-size:${r.small?'11':'12'}px;color:var(--muted)">${r.label}</span>
-            <span style="font-weight:700;font-size:${r.small?'11':'13'}px;color:${r.cor||'var(--text)'}">${r.val}</span>
-          </div>`).join('')}
-          <div style="padding:10px;border-radius:8px;text-align:center;font-weight:700;font-size:13px;margin-top:4px;background:${ocup>1?'#fde8e8':ocup>0.85?'#fff3cd':'#d4edda'};color:${ocup>1?'var(--danger)':ocup>0.85?'#856404':'var(--success)'}">
-            ${ocup>1?'🚨 Meta não cabe na agenda':ocup>0.85?'⚠️ Agenda quase cheia':'✅ Meta cabe na agenda'}
-          </div>
-        </div>
-      </div>
+    <!-- Resumos calculados HOF | Odonto -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px">
+      ${_resumoCard('✨ Resumo HOF','var(--teal-d)',meta.metaHOF||0,cHF,meta.diasAtendHOF||20,meta.horasAtenDiaHOF||4,meta.semanas||4,meta.txFechHOF||40,meta.txCompHOF||80,meta.txAgendHOF||30)}
+      ${_resumoCard('🦷 Resumo Odontologia','var(--info)',meta.metaOdonto||0,cOd,meta.diasAtendOd||20,meta.horasAtenDiaOd||4,meta.semanas||4,meta.txFechOd||40,meta.txCompOd||80,meta.txAgendOd||30)}
     </div>
 
     <!-- Mix HOF -->
@@ -10152,25 +11108,27 @@ function renderMetasComercial(area){
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
         <div style="font-weight:700;font-size:14px;color:var(--teal-d)">✨ Mix HOF — ${fmt(meta.metaHOF||0)}</div>
         ${isMaster?`<div style="display:flex;gap:8px">
-          <button class="btn btn-o btn-xs" onclick="addLinhaMix('hf')">+ Linha</button>
-          <button class="btn btn-p btn-xs" onclick="salvarMix('hf')">💾 Salvar</button>
+          <button class="btn btn-o btn-xs" onclick="addLinhaMix('hf')">+ Procedimento</button>
+          <button class="btn btn-p btn-xs" onclick="salvarMix('hf')">💾 Salvar Mix</button>
         </div>`:''}
       </div>
       ${alertaHF}
-      ${_mixTable(mixHF,meta.metaHOF||0,'hf',isMaster)}
+      ${mixHF.length===0&&isMaster?'<div style="font-size:12px;color:var(--muted);padding:8px">Nenhum procedimento adicionado. Clique "+ Procedimento" para começar.</div>':''}
+      ${mixHF.length?_mixTable(mixHF,meta.metaHOF||0,'hf',isMaster):''}
     </div>
 
     <!-- Mix Odontologia -->
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-        <div style="font-weight:700;font-size:14px;color:var(--teal-d)">🦷 Mix Odontologia — ${fmt(meta.metaOdonto||0)}</div>
+        <div style="font-weight:700;font-size:14px;color:var(--info)">🦷 Mix Odontologia — ${fmt(meta.metaOdonto||0)}</div>
         ${isMaster?`<div style="display:flex;gap:8px">
-          <button class="btn btn-o btn-xs" onclick="addLinhaMix('odonto')">+ Linha</button>
-          <button class="btn btn-p btn-xs" onclick="salvarMix('odonto')">💾 Salvar</button>
+          <button class="btn btn-o btn-xs" onclick="addLinhaMix('odonto')">+ Procedimento</button>
+          <button class="btn btn-p btn-xs" onclick="salvarMix('odonto')">💾 Salvar Mix</button>
         </div>`:''}
       </div>
       ${alertaOd}
-      ${_mixTable(mixOdonto,meta.metaOdonto||0,'odonto',isMaster)}
+      ${mixOd.length===0&&isMaster?'<div style="font-size:12px;color:var(--muted);padding:8px">Nenhum procedimento adicionado. Clique "+ Procedimento" para começar.</div>':''}
+      ${mixOd.length?_mixTable(mixOd,meta.metaOdonto||0,'odonto',isMaster):''}
     </div>
   `;
 }
@@ -10188,12 +11146,17 @@ function salvarMeta(){
   const meta={mes,
     metaHOF:parseFloat($('cmMetaHOF')?.value)||0,
     metaOdonto:parseFloat($('cmMetaOdonto')?.value)||0,
-    diasAtend:parseFloat($('cmDias')?.value)||0,
-    horasAtenDia:parseFloat($('cmHoras')?.value)||0,
-    semanas:parseFloat($('cmSemanas')?.value)||0,
-    txFechamento:parseFloat($('cmTxFech')?.value)||0,
-    txComparecimento:parseFloat($('cmTxComp')?.value)||0,
-    txAgendamento:parseFloat($('cmTxAgend')?.value)||0,
+    semanas:parseFloat($('cmSemanas')?.value)||4,
+    diasAtendHOF:parseFloat($('cmDiasHOF')?.value)||0,
+    horasAtenDiaHOF:parseFloat($('cmHorasHOF')?.value)||0,
+    txFechHOF:parseFloat($('cmTxFechHOF')?.value)||0,
+    txCompHOF:parseFloat($('cmTxCompHOF')?.value)||0,
+    txAgendHOF:parseFloat($('cmTxAgendHOF')?.value)||0,
+    diasAtendOd:parseFloat($('cmDiasOd')?.value)||0,
+    horasAtenDiaOd:parseFloat($('cmHorasOd')?.value)||0,
+    txFechOd:parseFloat($('cmTxFechOd')?.value)||0,
+    txCompOd:parseFloat($('cmTxCompOd')?.value)||0,
+    txAgendOd:parseFloat($('cmTxAgendOd')?.value)||0,
   };
   const arr=getMetas().filter(m=>m.mes!==mes);
   arr.push(meta);saveMetas(arr);
@@ -10204,12 +11167,19 @@ function salvarMeta(){
 function salvarMix(area){
   const mes=_getMesComercial();
   const tbody=$(`mixTbody_${area}`);if(!tbody)return;
+  const allProcs=getProcs();
   const mix=[...tbody.querySelectorAll('tr')].map(tr=>{
+    const sel=tr.querySelector('select');
     const inputs=tr.querySelectorAll('input');
-    return{mes,area,proc:inputs[0]?.value||'',pct:parseFloat(inputs[1]?.value)||0,ticket:parseFloat(inputs[2]?.value)||0,horasPorPac:parseFloat(inputs[3]?.value)||0};
-  }).filter(r=>r.proc);
+    const procId=sel?sel.value:(tr.dataset.procId||'');
+    const proc=allProcs.find(p=>p.id===procId);
+    return{mes,area,procId,proc:proc?proc.nome:(tr.querySelector('span')?.textContent||''),
+      pct:parseFloat(inputs[0]?.value)||0,
+      ticket:parseFloat(inputs[1]?.value)||0,
+      horasPorPac:parseFloat(inputs[2]?.value)||0};
+  }).filter(r=>r.procId||r.proc);
   const soma=mix.reduce((s,r)=>s+r.pct,0);
-  if(Math.abs(soma-100)>0.01){alert(`O mix ${area==='hf'?'HOF':'Odonto'} soma ${soma.toFixed(1)}%. Ajuste para somar 100% antes de salvar.`);return;}
+  if(mix.length&&Math.abs(soma-100)>0.01){alert(`O mix ${area==='hf'?'HOF':'Odonto'} soma ${soma.toFixed(1)}%. Ajuste para somar 100% antes de salvar.`);return;}
   const arr=getMetaMix().filter(m=>!(m.mes===mes&&m.area===area));
   arr.push(...mix);saveMetaMix(arr);
   auditLog('mix_salvo','metaMix',mes,`Mix ${area} com ${mix.length} procedimentos salvo para ${mes}`);
@@ -10217,21 +11187,24 @@ function salvarMix(area){
 }
 
 function addLinhaMix(area){
-  const tbody=$(`mixTbody_${area}`);if(!tbody)return;
+  const tbody=$(`mixTbody_${area}`);
+  if(!tbody){renderComercial();setTimeout(()=>addLinhaMix(area),80);return;}
+  const IS=`border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--card);color:var(--text)`;
   const tr=document.createElement('tr');
+  tr.dataset.procId='';
   tr.innerHTML=`
-    <td><input type="text" placeholder="Procedimento" style="width:100%;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;background:var(--card);color:var(--text)"></td>
-    <td><input type="number" value="0" step="1" min="0" max="100" style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)" oninput="atualizarResumoMix('${area}')"></td>
-    <td><input type="number" value="0" step="100" min="0" style="width:80px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)"></td>
-    <td><input type="number" value="1" step="0.5" min="0" style="width:60px;border:1px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;text-align:right;background:var(--card);color:var(--text)"></td>
+    <td><select style="${IS};min-width:150px" onchange="_onMixProcChange(this,'${area}')">${_procSelectOpts(area,'')}</select></td>
+    <td><input type="number" value="0" step="1" min="0" max="100" style="${IS};width:55px;text-align:right" oninput="atualizarResumoMix('${area}')"></td>
+    <td><input type="number" value="0" step="100" min="0" style="${IS};width:75px;text-align:right"></td>
+    <td><input type="number" value="0" step="0.25" min="0" style="${IS};width:60px;text-align:right"></td>
     <td colspan="3" style="font-size:11px;color:var(--muted)">salve para calcular</td>
-    <td><button class="btn btn-d btn-xs" onclick="this.closest('tr').remove()">🗑</button></td>`;
+    <td><button class="btn btn-d btn-xs" onclick="this.closest('tr').remove();atualizarResumoMix('${area}')">🗑</button></td>`;
   tbody.appendChild(tr);
 }
 
 function atualizarResumoMix(area){
   const tbody=$(`mixTbody_${area}`);if(!tbody)return;
-  const soma=[...tbody.querySelectorAll('tr')].reduce((s,tr)=>s+(parseFloat(tr.querySelectorAll('input')[1]?.value)||0),0);
+  const soma=[...tbody.querySelectorAll('tr')].reduce((s,tr)=>s+(parseFloat(tr.querySelectorAll('input')[0]?.value)||0),0);
   const el=$(`mixSoma_${area}`);
   if(el){el.textContent=soma.toFixed(1)+'%';el.style.color=Math.abs(soma-100)>0.01?'var(--danger)':'var(--success)';}
 }
