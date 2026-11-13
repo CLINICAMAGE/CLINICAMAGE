@@ -1669,6 +1669,26 @@ tr:hover td{background:var(--teal-p)}
   </div>
 </div></div>
 
+<!-- Orçamento Rápido (Funil Comercial) -->
+<div class="mo" id="mOrcRapido"><div class="mb" style="width:420px;max-width:98vw">
+  <div class="mh"><h3>📄 Orçamento Rápido</h3><button class="mc" onclick="closeM('mOrcRapido')">×</button></div>
+  <div class="fr"><div class="ff"><label>Paciente *</label>
+    <select id="orqPac" style="width:100%"></select>
+  </div></div>
+  <div class="fr"><div class="ff"><label>Descrição *</label>
+    <input type="text" id="orqDesc" placeholder="Ex: Aparelho + clareamento">
+  </div></div>
+  <div class="fr">
+    <div class="ff"><label>Valor (R$) *</label><input type="number" id="orqValor" step="0.01" min="0" placeholder="0,00"></div>
+    <div class="ff" style="flex:0 0 160px"><label>Data</label><input type="date" id="orqData"></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);padding:0 16px 8px">💡 Para forma de pagamento e itens detalhados, use o orçamento completo no prontuário do paciente.</div>
+  <div class="mf">
+    <button class="btn btn-o" onclick="closeM('mOrcRapido')">Cancelar</button>
+    <button class="btn btn-p" onclick="salvarOrcRapido()">💾 Salvar</button>
+  </div>
+</div></div>
+
 <!-- Investimento Marketing -->
 <div class="mo" id="mMktInvest"><div class="mb" style="width:480px">
   <div class="mh"><h3 id="mMktTitle">Registrar Investimento</h3><button class="mc" onclick="closeM('mMktInvest')">×</button></div>
@@ -10258,7 +10278,23 @@ function _getMetaMix(mes,area){
 
 let _CCOMERC='metas';
 function comercialTab(t){_CCOMERC=t;document.querySelectorAll('#page-comercial .stab').forEach((el,i)=>el.classList.toggle('on',['metas','funil','followup','ataque','semana'][i]===t));renderComercial();}
-function renderComercial(){const area=$('comercialArea');if(!area)return;if(_CCOMERC==='metas')renderMetasComercial(area);else if(_CCOMERC==='funil')renderFunilComercial(area);else if(_CCOMERC==='followup')renderFollowupComercial(area);else if(_CCOMERC==='ataque')renderListaAtaque(area);else if(_CCOMERC==='semana')renderSemanaComercial(area);}
+function renderComercial(){
+  const area=$('comercialArea');if(!area)return;
+  try{
+    if(_CCOMERC==='metas')renderMetasComercial(area);
+    else if(_CCOMERC==='funil')renderFunilComercial(area);
+    else if(_CCOMERC==='followup')renderFollowupComercial(area);
+    else if(_CCOMERC==='ataque')renderListaAtaque(area);
+    else if(_CCOMERC==='semana')renderSemanaComercial(area);
+  }catch(e){
+    area.innerHTML=`<div style="background:#fde8e8;border:1px solid var(--danger);border-radius:10px;padding:20px;margin:16px;font-family:monospace">
+      <div style="font-weight:700;color:var(--danger);margin-bottom:8px">⚠️ Erro no módulo Comercial (aba: ${_CCOMERC})</div>
+      <div style="font-size:12px;color:#333">${e.message}</div>
+      <pre style="font-size:11px;color:#666;margin-top:8px;overflow:auto;max-height:200px">${e.stack||''}</pre>
+    </div>`;
+    console.error('renderComercial erro:',e);
+  }
+}
 
 // ══ F2: FUNIL DO ORÇAMENTO ══
 // statusFunil: 'enviado' | 'negociacao' | 'aceito' | 'perdido'
@@ -10311,9 +10347,10 @@ function moverFunil(orcId,pacId,novoStatus){
 }
 
 function abrirNovoOrcRapido(){
+  const sel=$('orqPac');if(sel)sel.innerHTML=getPacs().sort((a,b)=>a.nome.localeCompare(b.nome)).map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+  const dEl=$('orqData');if(dEl&&!dEl.value)dEl.value=today();
+  ['orqDesc','orqValor'].forEach(id=>{const el=$(id);if(el)el.value='';});
   openM('mOrcRapido');
-  const sel=$('orqPac');if(!sel)return;
-  sel.innerHTML=getPacs().sort((a,b)=>a.nome.localeCompare(b.nome)).map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
 }
 
 function salvarOrcRapido(){
@@ -10397,32 +10434,7 @@ function renderFunilComercial(area){
       }).join('')}
     </div>
 
-    <!-- Modal orçamento rápido -->
-    <div id="mOrcRapido" class="modal" style="display:none">
-      <div class="modal-box" style="max-width:420px">
-        <div class="modal-hd"><h3>📄 Orçamento Rápido</h3><button class="modal-cls" onclick="closeM('mOrcRapido')">×</button></div>
-        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
-          <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Paciente</label>
-            <select id="orqPac" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;background:var(--card);color:var(--text)"></select></div>
-          <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Descrição</label>
-            <input type="text" id="orqDesc" placeholder="Ex: Aparelho + clareamento" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;background:var(--card);color:var(--text)"></div>
-          <div class="g2">
-            <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Valor (R$)</label>
-              <input type="number" id="orqValor" placeholder="0,00" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;background:var(--card);color:var(--text)"></div>
-            <div><label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Data</label>
-              <input type="date" id="orqData" style="width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;background:var(--card);color:var(--text)"></div>
-          </div>
-          <div style="font-size:11px;color:var(--muted)">💡 Para registrar forma de pagamento, taxas e itens detalhados, use o orçamento completo no prontuário do paciente.</div>
-          <div style="display:flex;gap:8px;justify-content:flex-end">
-            <button class="btn btn-g" onclick="closeM('mOrcRapido')">Cancelar</button>
-            <button class="btn btn-p" onclick="salvarOrcRapido()">💾 Salvar</button>
-          </div>
-        </div>
-      </div>
-    </div>
   `;
-  // Preencher data padrão no modal
-  const dEl=$('orqData');if(dEl&&!dEl.value)dEl.value=today();
 }
 
 // ══ F3: CADÊNCIA DE FOLLOW-UP ══
