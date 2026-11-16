@@ -4960,6 +4960,37 @@ function renderProc(){
     <div class="card" style="margin-top:16px" id="peCard">
       <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">⚖️ Ponto de Equilíbrio do Consultório</div>
       ${_precifPE?_precifPE:'<div class="empty"><p>Calcule a precificação acima para ver o ponto de equilíbrio.</p></div>'}
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div style="font-weight:700;font-size:14px;margin-bottom:16px;color:var(--teal-d)">🎁 Simulador de Combo / Pacote Promocional</div>
+      <div class="g2" style="gap:16px;align-items:start">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <select id="comboProc" style="flex:1;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;outline:none">
+              <option value="">— Selecionar procedimento —</option>${procOpts}
+            </select>
+            <button class="btn btn-o btn-sm" onclick="_comboAddProc()">+ Adicionar</button>
+          </div>
+          <div id="comboItens" style="display:flex;flex-direction:column;gap:6px;min-height:40px;margin-bottom:12px"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;background:var(--bg);border-radius:6px;margin-bottom:8px">
+            <label style="font-size:13px">Valor global do pacote (R$)</label>
+            <input type="number" id="comboValor" step="0.01" min="0" placeholder="0,00" style="width:130px;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;outline:none;text-align:right">
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;background:var(--bg);border-radius:6px;margin-bottom:8px">
+            <label style="font-size:13px">Imposto sobre receita (%)</label>
+            <input type="number" id="comboImp" value="${fin.impostos||6}" step="0.01" min="0" style="width:80px;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;outline:none;text-align:right">
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;background:var(--bg);border-radius:6px;margin-bottom:12px">
+            <label style="font-size:13px">Nome do pacote (opcional)</label>
+            <input type="text" id="comboNome" placeholder="Ex: Combo Rejuvenescimento" style="width:220px;border:1.5px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;outline:none">
+          </div>
+          <button class="btn btn-p" style="width:100%" onclick="simularCombo()">🎁 Simular Pacote</button>
+        </div>
+        <div id="comboResult">
+          <div class="empty"><p>Adicione procedimentos e defina o valor global do pacote para simular.</p></div>
+        </div>
+      </div>
     </div>`;
     // Restore simulator state
     if(_simCache){const s=$('simResult');if(s)s.innerHTML=_simCache;}
@@ -5183,6 +5214,102 @@ function simularPreco(){
     <div style="font-size:11px;color:var(--muted);margin-top:10px">Custo hora: ${fmt(custoHora)}/h · Margem desejada: ${marg}% · Imposto: ${imp}%</div>`;
 
   result.innerHTML=`<div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">📈 Resultado da Simulação</div>`+_simCache;
+}
+
+// ── Simulador de Combo ──
+let _comboItens=[];
+function _comboAddProc(){
+  const sel=$('comboProc');if(!sel||!sel.value)return;
+  const proc=getProcs().find(p=>p.id===sel.value);if(!proc)return;
+  if(_comboItens.find(i=>i.id===proc.id))return alert('Procedimento já adicionado.');
+  _comboItens.push({id:proc.id,nome:proc.nome,valor:proc.valor||0,custo:proc.custo||0,dur:proc.dur||60});
+  _comboRender();sel.value='';
+}
+function _comboRemove(id){_comboItens=_comboItens.filter(i=>i.id!==id);_comboRender();}
+function _comboRender(){
+  const el=$('comboItens');if(!el)return;
+  if(!_comboItens.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0">Nenhum procedimento adicionado.</div>';return;}
+  el.innerHTML=_comboItens.map(it=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border-radius:6px;font-size:12px">
+      <div style="flex:1">
+        <div style="font-weight:600">${it.nome}</div>
+        <div style="color:var(--muted)">Tabela: ${fmt(it.valor)} · Custo mat.: ${fmt(it.custo)} · ${it.dur}min</div>
+      </div>
+      <button class="btn btn-d btn-xs" onclick="_comboRemove('${it.id}')">✕</button>
+    </div>`).join('');
+}
+function simularCombo(){
+  const valor=parseFloat($('comboValor')?.value)||0;
+  const imp=parseFloat($('comboImp')?.value)||0;
+  const nome=($('comboNome')?.value||'').trim()||'Pacote';
+  const result=$('comboResult');if(!result)return;
+  if(!_comboItens.length)return alert('Adicione pelo menos um procedimento.');
+  if(!valor)return alert('Informe o valor global do pacote.');
+
+  const cfg=ls('finConfig',{});
+  const fin=ls('finConfig',{aluguel:0,salarios:0,materiais_fixos:0,outros_fixos:0,horas_mes:160});
+  const totalFixo=(fin.aluguel||0)+(fin.salarios||0)+(fin.materiais_fixos||0)+(fin.outros_fixos||0);
+  const custoHora=fin.horas_mes>0?totalFixo/fin.horas_mes:0;
+
+  const custoMat=_comboItens.reduce((s,i)=>s+i.custo,0);
+  const custoTempo=_comboItens.reduce((s,i)=>s+custoHora*(i.dur/60),0);
+  const custoTotal=custoMat+custoTempo;
+  const tabelaTotal=_comboItens.reduce((s,i)=>s+i.valor,0);
+  const desconto=tabelaTotal>0?Math.round((1-valor/tabelaTotal)*100):0;
+  const impValor=valor*(imp/100);
+  const liquido=valor-impValor;
+  const margem=valor>0?Math.round((liquido-custoTotal)/valor*100):0;
+  const durTotal=_comboItens.reduce((s,i)=>s+i.dur,0);
+
+  // Tabela de parcelamento
+  const modalidades=[
+    {label:'PIX / Dinheiro',taxa:cfg.txPix||0,parcs:1},
+    {label:'Débito',taxa:cfg.txDeb||1.5,parcs:1},
+    ...[1,2,3,4,5,6,7,8,9,10,11,12].map(p=>({label:`Crédito ${p}x`,taxa:cfg[`txCred${p}`]!==undefined?cfg[`txCred${p}`]:(p<=1?2.5:p<=2?3.0:p<=6?3.5:4.5),parcs:p}))
+  ];
+  const tabelaParc=modalidades.map(m=>{
+    const taxaVal=valor*(m.taxa/100);
+    const liquMod=valor-taxaVal;
+    const parcVal=m.parcs>1?valor/m.parcs:valor;
+    const ok=liquMod>=custoTotal;
+    return`<tr style="font-size:12px">
+      <td style="padding:5px 8px">${m.label}</td>
+      <td style="padding:5px 8px;text-align:right">${m.taxa.toFixed(2)}%</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--danger)">${fmt(taxaVal)}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:700;color:${ok?'var(--success)':'var(--danger)'}">${fmt(liquMod)}</td>
+      ${m.parcs>1?`<td style="padding:5px 8px;text-align:right;color:var(--muted)">${m.parcs}x de ${fmt(parcVal)}</td>`:'<td style="padding:5px 8px;text-align:right;color:var(--muted)">à vista</td>'}
+    </tr>`;
+  }).join('');
+
+  result.innerHTML=`
+    <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">📊 ${nome}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      ${[
+        {l:'Valor do pacote',v:fmt(valor),c:'var(--teal-d)'},
+        {l:'Tabela cheia',v:`${fmt(tabelaTotal)} ${desconto>0?`<span class="badge b-warn">-${desconto}% desconto</span>`:''}`,c:'inherit'},
+        {l:'Custo de materiais',v:fmt(custoMat),c:'var(--danger)'},
+        {l:'Custo de tempo',v:`${fmt(custoTempo)} (${durTotal}min)`,c:'var(--danger)'},
+        {l:'Custo total',v:fmt(custoTotal),c:'var(--danger)'},
+        {l:'Imposto (${imp}%)',v:fmt(impValor),c:'var(--warn)'},
+        {l:'Líquido s/ taxas cartão',v:fmt(liquido),c:'var(--success)'},
+        {l:'Margem bruta',v:`${margem}%`,c:margem>=30?'var(--success)':margem>=15?'var(--warn)':'var(--danger)'},
+      ].map(r=>`<div style="padding:8px 10px;background:var(--bg);border-radius:6px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:2px">${r.l}</div>
+        <div style="font-weight:700;font-size:14px;color:${r.c}">${r.v}</div>
+      </div>`).join('')}
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Parcelamento — líquido recebido pela clínica</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+      <thead><tr style="font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)">
+        <th style="padding:5px 8px;text-align:left">Modalidade</th>
+        <th style="padding:5px 8px;text-align:right">Taxa</th>
+        <th style="padding:5px 8px;text-align:right">Taxa (R$)</th>
+        <th style="padding:5px 8px;text-align:right">Líquido</th>
+        <th style="padding:5px 8px;text-align:right">Parcelas</th>
+      </tr></thead>
+      <tbody>${tabelaParc}</tbody>
+    </table></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">✅ Verde = líquido acima do custo total · ❌ Vermelho = prejuízo nessa modalidade</div>`;
 }
 
 function calcMetaPE(){
