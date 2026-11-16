@@ -5273,15 +5273,15 @@ function simularCombo(){
   ];
   const tabelaParc=modalidades.map(m=>{
     const taxaVal=valor*(m.taxa/100);
-    const liquMod=valor-taxaVal;
-    const parcVal=m.parcs>1?valor/m.parcs:valor;
-    const ok=liquMod>=custoTotal;
+    const lucroLiq=valor-taxaVal-impValor-custoTotal; // lucro real: abate taxa + imposto + custos
+    const parcVal=m.parcs>1?(valor+(m.taxa>0&&false?taxaVal:0))/m.parcs:valor; // parcela sobre valor cobrado
+    const ok=lucroLiq>0;
     return`<tr style="font-size:12px">
       <td style="padding:5px 8px">${m.label}</td>
       <td style="padding:5px 8px;text-align:right">${m.taxa.toFixed(2)}%</td>
       <td style="padding:5px 8px;text-align:right;color:var(--danger)">${fmt(taxaVal)}</td>
-      <td style="padding:5px 8px;text-align:right;font-weight:700;color:${ok?'var(--success)':'var(--danger)'}">${fmt(liquMod)}</td>
-      ${m.parcs>1?`<td style="padding:5px 8px;text-align:right;color:var(--muted)">${m.parcs}x de ${fmt(parcVal)}</td>`:'<td style="padding:5px 8px;text-align:right;color:var(--muted)">à vista</td>'}
+      <td style="padding:5px 8px;text-align:right;font-weight:700;color:${ok?'var(--success)':'var(--danger)'}">${fmt(lucroLiq)}</td>
+      ${m.parcs>1?`<td style="padding:5px 8px;text-align:right;color:var(--muted)">${m.parcs}x de ${fmt(parcVal/m.parcs)}</td>`:'<td style="padding:5px 8px;text-align:right;color:var(--muted)">à vista</td>'}
     </tr>`;
   }).join('');
 
@@ -5294,9 +5294,9 @@ function simularCombo(){
         {l:'Custo de materiais',v:fmt(custoMat),c:'var(--danger)'},
         {l:'Custo de tempo',v:`${fmt(custoTempo)} (${durTotal}min)`,c:'var(--danger)'},
         {l:'Custo total',v:fmt(custoTotal),c:'var(--danger)'},
-        {l:'Imposto (${imp}%)',v:fmt(impValor),c:'var(--warn)'},
-        {l:'Líquido s/ taxas cartão',v:fmt(liquido),c:'var(--success)'},
-        {l:'Margem bruta',v:`${margem}%`,c:margem>=30?'var(--success)':margem>=15?'var(--warn)':'var(--danger)'},
+        {l:`Imposto (${imp}%)`,v:fmt(impValor),c:'var(--warn)'},
+        {l:'Lucro líquido (PIX/Dinheiro)',v:fmt(valor-impValor-custoTotal),c:(valor-impValor-custoTotal)>0?'var(--success)':'var(--danger)'},
+        {l:'Margem real (PIX)',v:`${Math.round((valor-impValor-custoTotal)/valor*100)}%`,c:Math.round((valor-impValor-custoTotal)/valor*100)>=30?'var(--success)':Math.round((valor-impValor-custoTotal)/valor*100)>=15?'var(--warn)':'var(--danger)'},
       ].map(r=>`<div style="padding:8px 10px;background:var(--bg);border-radius:6px">
         <div style="font-size:11px;color:var(--muted);margin-bottom:2px">${r.l}</div>
         <div style="font-weight:700;font-size:14px;color:${r.c}">${r.v}</div>
@@ -5308,12 +5308,12 @@ function simularCombo(){
         <th style="padding:5px 8px;text-align:left">Modalidade</th>
         <th style="padding:5px 8px;text-align:right">Taxa</th>
         <th style="padding:5px 8px;text-align:right">Taxa (R$)</th>
-        <th style="padding:5px 8px;text-align:right">Líquido</th>
+        <th style="padding:5px 8px;text-align:right">Lucro líquido</th>
         <th style="padding:5px 8px;text-align:right">Parcelas</th>
       </tr></thead>
       <tbody>${tabelaParc}</tbody>
     </table></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:10px">✅ Verde = líquido acima do custo total · ❌ Vermelho = prejuízo nessa modalidade</div>`;
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">Lucro líquido = valor do pacote − taxa do cartão − imposto − custo de materiais − custo de tempo · ✅ Verde = lucro positivo · ❌ Vermelho = prejuízo</div>`;
   result.innerHTML=_comboResultCache;
 }
 
