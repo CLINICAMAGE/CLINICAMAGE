@@ -3452,7 +3452,17 @@ function emitirReciboOrc(orcId){
         </tr>`).join('')}
       </table>`
     :`<div style="padding:8px 0;font-size:13px">${orc.desc}</div>`;
-  _preencherRecibo(CPAC.nome,CPAC.cpf,descItens,orc.total,orc.pgto,orc.parcs||1,orc.obs);
+  const _taxaOpt=orc.taxaOpt||'repassar';
+  if(_taxaOpt==='repassar'&&(orc.taxa||0)>0){
+    // Clínica repassa taxa ao paciente → mostrar totalCobrado (o que o paciente pagou)
+    // sem re-deduzir a taxa (que já foi paga pelo paciente separadamente)
+    _preencherRecibo(CPAC.nome,CPAC.cpf,descItens,orc.totalCobrado||orc.total,'Dinheiro',orc.parcs||1,orc.obs);
+    if($('reciboTaxaInfo'))$('reciboTaxaInfo').textContent=`Taxa ${orc.pgto}: ${orc.taxa}% (paga pelo paciente)`;
+    if($('reciboTaxaVal'))$('reciboTaxaVal').textContent=`+ Taxa paga pelo paciente: ${fmt(orc.taxaValor||0)}`;
+    if($('reciboLiquido'))$('reciboLiquido').textContent=`Recebido pela clínica: ${fmt(orc.liquidoClinica||orc.total)}`;
+  } else {
+    _preencherRecibo(CPAC.nome,CPAC.cpf,descItens,orc.total,orc.pgto,orc.parcs||1,orc.obs);
+  }
   openM('mRecibo');incrementReciboNum();
 }
 
@@ -6995,8 +7005,9 @@ function salvarPgtoOrc(){
   const lanc=lancs.find(l=>l.orcId===id&&l.tipo==='receita');
   if(lanc){
     lanc.status=o.status==='pago'?'pago':'pendente';
-    // valor = bruto (gross); despesa de taxa deduz separado quando assumir
-    lanc.valor=o.total||aReceber;
+    // Para 'repassar': clinic recebe exatamente liquidoClinica = totalBase (sem desconto de taxa)
+    // Para 'assumir':  clinic recebe totalBase; despesa separada de taxa deduz
+    lanc.valor=(o.taxaOpt||'repassar')==='repassar'?(o.liquidoClinica||o.total||0):(o.total||0);
     lanc.entrada=novoPago;
     if(o.status==='pago')lanc.data=today();
     // Se quitado e clínica assumiu a taxa → marcar despesa de taxa como paga também
@@ -7193,7 +7204,7 @@ function renderAgenda(){
 function weekDays(d){const dow=d.getDay();const m=new Date(d);m.setDate(d.getDate()-(dow===0?6:dow-1));return Array.from({length:7},(_,i)=>{const dd=new Date(m);dd.setDate(m.getDate()+i);return dd})}
 function renderSemana(area,ags){
   const days=weekDays(agDate);const td=today();
-  const hours=Array.from({length:12},(_,i)=>i+7);
+  const hours=Array.from({length:16},(_,i)=>i+7);
   $('agPer').textContent=`${days[0].toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})} – ${days[6].toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}`;
   let h=`<div class="wg" style="grid-template-columns:52px repeat(7,1fr)">
     <div class="wg-hd"></div>
