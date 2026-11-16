@@ -8094,8 +8094,11 @@ function _ldSelecionarPac(pacId){
   const pac=getPacs().find(p=>p.id===pacId);
   if($('ldPacId'))$('ldPacId').value=pacId||'';
   if(pac){
-    if($('ldN'))$('ldN').value=pac.nome;
+    if($('ldN')){$('ldN').value=pac.nome;$('ldN').dispatchEvent(new Event('input'));}
     if($('ldTel'))$('ldTel').value=pac.tel||'';
+  } else {
+    if($('ldN'))$('ldN').value='';
+    if($('ldTel'))$('ldTel').value='';
   }
 }
 
@@ -8153,7 +8156,9 @@ function abrirModalLead(leadId,estagioInicial){
   openM('mLead');
 }
 function salvarLead(){
-  const nome=$('ldN').value.trim();if(!nome)return alert('Nome obrigatório.');
+  const pacVinc=getPacs().find(p=>p.id===($('ldPacId')?.value||''));
+  const nome=($('ldN').value.trim())||(pacVinc?.nome||'');
+  if(!nome)return alert('Nome obrigatório.');
   const editId=$('ldEditId')?.value||'';
   const arr=ls('leads',[]);
   const base=editId?arr.find(x=>x.id===editId)||{}:{};
