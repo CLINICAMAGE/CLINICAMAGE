@@ -1629,6 +1629,13 @@ tr:hover td{background:var(--teal-p)}
 <div class="mo" id="mLead"><div class="mb" style="width:560px">
   <div class="mh"><h3 id="mLeadTitle">Novo Lead</h3><button class="mc" onclick="closeM('mLead')">×</button></div>
   <input type="hidden" id="ldEditId">
+  <input type="hidden" id="ldPacId">
+  <div class="fr" style="align-items:flex-end">
+    <div class="ff" style="flex:2">
+      <label>Paciente cadastrado <span style="font-size:10px;color:var(--muted)">(opcional — para reativar da base)</span></label>
+      <select id="ldPacSel" onchange="_ldSelecionarPac(this.value)" style="width:100%"></select>
+    </div>
+  </div>
   <div class="fr">
     <div class="ff"><label>Nome *</label><input type="text" id="ldN"></div>
     <div class="ff"><label>Telefone</label><input type="text" id="ldTel"></div>
@@ -1672,8 +1679,13 @@ tr:hover td{background:var(--teal-p)}
 <!-- Orçamento Rápido (Funil Comercial) -->
 <div class="mo" id="mOrcRapido"><div class="mb" style="width:420px;max-width:98vw">
   <div class="mh"><h3>📄 Orçamento Rápido</h3><button class="mc" onclick="closeM('mOrcRapido')">×</button></div>
+  <input type="hidden" id="orqPacId">
   <div class="fr"><div class="ff"><label>Paciente *</label>
-    <select id="orqPac" style="width:100%"></select>
+    <select id="orqPac" style="width:100%" onchange="_orqSelecionarPac(this.value)"></select>
+  </div></div>
+  <div class="fr" id="orqNovoNomeWrap" style="display:none"><div class="ff">
+    <label>Nome do novo paciente *</label>
+    <input type="text" id="orqNovoNome" placeholder="Digite o nome completo">
   </div></div>
   <div class="fr"><div class="ff"><label>Descrição *</label>
     <input type="text" id="orqDesc" placeholder="Ex: Aparelho + clareamento">
@@ -8072,15 +8084,51 @@ function editarTituloEstagio(id){
   saveEstgLabel(id,novo.trim());
   renderKanban();
 }
+// Preenche select do modal Lead com pacientes cadastrados
+function _ldPopularPacs(){
+  const sel=$('ldPacSel');if(!sel)return;
+  sel.innerHTML='<option value="">— Novo lead (não cadastrado) —</option>'+
+    getPacs().sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(p=>`<option value="${p.id}">${p.nome}${p.tel?' — '+p.tel:''}</option>`).join('');
+}
+function _ldSelecionarPac(pacId){
+  const pac=getPacs().find(p=>p.id===pacId);
+  if($('ldPacId'))$('ldPacId').value=pacId||'';
+  if(pac){
+    if($('ldN'))$('ldN').value=pac.nome;
+    if($('ldTel'))$('ldTel').value=pac.tel||'';
+  }
+}
+
+// Preenche select do orçamento rápido com pacientes + opção novo
+function _orqPopularPacs(){
+  const sel=$('orqPac');if(!sel)return;
+  sel.innerHTML='<option value="">— Selecionar paciente —</option>'+
+    getPacs().sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(p=>`<option value="${p.id}">${p.nome}</option>`).join('')+
+    '<option value="__novo__">➕ Novo paciente (pré-cadastro)</option>';
+}
+function _orqSelecionarPac(val){
+  const wrap=$('orqNovoNomeWrap');
+  if(val==='__novo__'){
+    if(wrap)wrap.style.display='';
+    if($('orqPacId'))$('orqPacId').value='';
+  } else {
+    if(wrap)wrap.style.display='none';
+    if($('orqPacId'))$('orqPacId').value=val||'';
+  }
+}
+
 function abrirModalLead(leadId,estagioInicial){
   // Preencher select de responsáveis
   const sel=$('ldResp');if(sel){
     const equipe=ls('equipe',[]).map(e=>e.nome||'').filter(Boolean);
     sel.innerHTML='<option value="">— Sem responsável —</option>'+equipe.map(n=>`<option value="${n}">${n}</option>`).join('');
   }
+  _ldPopularPacs();
   if(!leadId){
     if($('mLeadTitle'))$('mLeadTitle').textContent='Novo Lead';
     if($('ldEditId'))$('ldEditId').value='';
+    if($('ldPacId'))$('ldPacId').value='';
+    if($('ldPacSel'))$('ldPacSel').value='';
     if($('ldDt'))$('ldDt').value=today();
     ['ldN','ldTel','ldInt','ldObs','ldProxAcao','ldDtProxAcao'].forEach(id=>{const el=$(id);if(el)el.value='';});
     if($('ldEst'))$('ldEst').value=estagioInicial||'lead';
@@ -8117,6 +8165,7 @@ function salvarLead(){
     proxAcao:$('ldProxAcao')?.value.trim()||'',
     dtProxAcao:$('ldDtProxAcao')?.value||'',
     obs:$('ldObs').value.trim(),
+    pacId:$('ldPacId')?.value||base.pacId||'',
     notas:base.notas||[]};
   if(editId){const i=arr.findIndex(x=>x.id===editId);if(i>=0)arr[i]=l;else arr.push(l);}
   else arr.push(l);
@@ -9037,22 +9086,21 @@ function corrigirRetornosHistoricos(){
   const retornos=getRetornos();
   let dispensados=0;
   // Montar mapa: pacId → {tipo → dataUltimoProc}
+  // Fonte confiável: procId do item do orçamento → tipoRetorno cadastrado no procedimento
   const mapaProc={};
-  lancs.forEach(l=>{
-    const tipo=_detectTipoRetorno(l.desc)||_detectTipoRetorno(l.categoria);
-    if(!tipo)return;
-    if(!mapaProc[l.pacId])mapaProc[l.pacId]={};
-    if(!mapaProc[l.pacId][tipo]||l.data>mapaProc[l.pacId][tipo])
-      mapaProc[l.pacId][tipo]=l.data;
-  });
-  // Atendimentos do prontuário
+  const _reg=(pacId,tipo,data)=>{
+    if(!tipo||!data)return;
+    if(!mapaProc[pacId])mapaProc[pacId]={};
+    if(!mapaProc[pacId][tipo]||data>mapaProc[pacId][tipo])mapaProc[pacId][tipo]=data;
+  };
+  const procs=getProcs();
   pacs.forEach(p=>{
-    (p.atendimentos||[]).filter(a=>a.valor>0).forEach(a=>{
-      const tipo=_detectTipoRetorno(a.proc);
-      if(!tipo)return;
-      if(!mapaProc[p.id])mapaProc[p.id]={};
-      if(!mapaProc[p.id][tipo]||a.data>mapaProc[p.id][tipo])
-        mapaProc[p.id][tipo]=a.data;
+    (p.orcamentos||[]).filter(o=>o.status==='aceite'||o.status==='pago').forEach(o=>{
+      const dataOrc=o.dataPagamento||o.data||'';
+      (o.itens||[]).forEach(it=>{
+        const proc=procs.find(pr=>pr.id===it.procId);
+        if(proc?.tipoRetorno)_reg(p.id,proc.tipoRetorno,dataOrc);
+      });
     });
   });
   // Para cada retorno pendente: se existe lançamento do mesmo tipo APÓS a criação do retorno, dispensar
@@ -10466,16 +10514,30 @@ function moverFunil(orcId,pacId,novoStatus){
 }
 
 function abrirNovoOrcRapido(){
-  const sel=$('orqPac');if(sel)sel.innerHTML=getPacs().sort((a,b)=>a.nome.localeCompare(b.nome)).map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
-  const dEl=$('orqData');if(dEl&&!dEl.value)dEl.value=today();
+  _orqPopularPacs();
+  if($('orqPacId'))$('orqPacId').value='';
+  if($('orqNovoNomeWrap'))$('orqNovoNomeWrap').style.display='none';
+  if($('orqNovoNome'))$('orqNovoNome').value='';
+  const dEl=$('orqData');if(dEl)dEl.value=today();
   ['orqDesc','orqValor'].forEach(id=>{const el=$(id);if(el)el.value='';});
   openM('mOrcRapido');
 }
 
 function salvarOrcRapido(){
-  const pacId=$('orqPac')?.value;const desc=$('orqDesc')?.value.trim();const valor=parseFloat($('orqValor')?.value)||0;const data=$('orqData')?.value||today();
-  if(!pacId||!desc||!valor)return alert('Preencha paciente, descrição e valor.');
-  const pacs=getPacs();const pac=pacs.find(p=>p.id===pacId);if(!pac)return;
+  const selVal=$('orqPac')?.value;
+  const desc=$('orqDesc')?.value.trim();const valor=parseFloat($('orqValor')?.value)||0;const data=$('orqData')?.value||today();
+  if(!selVal||!desc||!valor)return alert('Preencha paciente, descrição e valor.');
+  const pacs=getPacs();
+  let pac;
+  if(selVal==='__novo__'){
+    const novoNome=($('orqNovoNome')?.value||'').trim();
+    if(!novoNome)return alert('Digite o nome do novo paciente.');
+    pac={id:uid(),nome:novoNome,tel:'',cpf:'',nasc:'',sexo:'',email:'',end:'',cidade:'',obs:'Pré-cadastro via orçamento rápido',cadastro:today(),orcamentos:[]};
+    pacs.push(pac);ss('pacientes',pacs);
+  } else {
+    pac=pacs.find(p=>p.id===selVal);if(!pac)return;
+  }
+  const pacId=pac.id;
   if(!pac.orcamentos)pac.orcamentos=[];
   const orc={id:uid(),data,desc,total:valor,totalCobrado:valor,liquidoClinica:valor,taxaOpt:'repassar',taxa:0,taxaValor:0,entrada:0,parcs:1,pgto:'Dinheiro',status:'pendente',statusFunil:'enviado',obs:'Orçamento rápido (papel)',itens:[],modo:'simples'};
   pac.orcamentos.push(orc);
@@ -10484,6 +10546,8 @@ function salvarOrcRapido(){
   closeM('mOrcRapido');['orqDesc','orqValor'].forEach(id=>{const el=$(id);if(el)el.value='';});
   renderComercial();renderFin();renderDash();
 }
+
+if(!window._funilAceitoDesde)window._funilAceitoDesde=_addDias(today(),-7);
 
 function renderFunilComercial(area){
   const cols=[
@@ -10494,7 +10558,13 @@ function renderFunilComercial(area){
   ];
   const todos=_todosOrcsComFunil();
   const agrupadosPorStatus={enviado:[],negociacao:[],aceito:[],perdido:[]};
-  todos.forEach(o=>{const s=o._statusFunil;if(s&&agrupadosPorStatus[s])agrupadosPorStatus[s].push(o);});
+  todos.forEach(o=>{
+    const s=o._statusFunil;
+    if(!s||!agrupadosPorStatus[s])return;
+    // Coluna Aceito: filtrar por data
+    if(s==='aceito'&&(o.data||'')<window._funilAceitoDesde)return;
+    agrupadosPorStatus[s].push(o);
+  });
 
   const totalGeral=todos.reduce((s,o)=>s+o.total,0);
   const totalAceito=agrupadosPorStatus.aceito.reduce((s,o)=>s+o.total,0);
@@ -10515,7 +10585,13 @@ function renderFunilComercial(area){
       </div>`).join('')}
     </div>
 
-    <div style="margin-bottom:12px;text-align:right">
+    <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+        <span>✅ Aceitos a partir de:</span>
+        <input type="date" value="${window._funilAceitoDesde}" style="font-size:12px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)"
+          onchange="window._funilAceitoDesde=this.value;renderComercial()">
+        <button class="btn btn-o btn-xs" onclick="window._funilAceitoDesde=_addDias(today(),-7);renderComercial()">↺ 7 dias</button>
+      </div>
       <button class="btn btn-p btn-sm" onclick="abrirNovoOrcRapido()">📄 + Orçamento rápido</button>
     </div>
 
