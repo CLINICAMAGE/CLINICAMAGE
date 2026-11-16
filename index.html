@@ -4995,6 +4995,9 @@ function renderProc(){
     // Restore simulator state
     if(_simCache){const s=$('simResult');if(s)s.innerHTML=_simCache;}
     if(_simProcId&&$('simProc')){$('simProc').value=_simProcId;if($('simDur'))$('simDur').value=_simDur||60;if($('simCusto'))$('simCusto').value=_simCustoMat||0;}
+    // Restore combo state
+    if(_comboResultCache){const cr=$('comboResult');if(cr)cr.innerHTML=_comboResultCache;}
+    _comboRender();
   }
 }
 function priceField(id,label,val,unit=''){
@@ -5218,6 +5221,7 @@ function simularPreco(){
 
 // ── Simulador de Combo ──
 let _comboItens=[];
+let _comboResultCache='';
 function _comboAddProc(){
   const sel=$('comboProc');if(!sel||!sel.value)return;
   const proc=getProcs().find(p=>p.id===sel.value);if(!proc)return;
@@ -5246,7 +5250,7 @@ function simularCombo(){
   if(!_comboItens.length)return alert('Adicione pelo menos um procedimento.');
   if(!valor)return alert('Informe o valor global do pacote.');
 
-  const cfg=ls('finConfig',{});
+  const cfg=getCfg(); // taxas de cartão ficam em sysConfig
   const fin=ls('finConfig',{aluguel:0,salarios:0,materiais_fixos:0,outros_fixos:0,horas_mes:160});
   const totalFixo=(fin.aluguel||0)+(fin.salarios||0)+(fin.materiais_fixos||0)+(fin.outros_fixos||0);
   const custoHora=fin.horas_mes>0?totalFixo/fin.horas_mes:0;
@@ -5281,7 +5285,7 @@ function simularCombo(){
     </tr>`;
   }).join('');
 
-  result.innerHTML=`
+  _comboResultCache=`
     <div style="font-weight:700;font-size:14px;margin-bottom:14px;color:var(--teal-d)">📊 ${nome}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
       ${[
@@ -5310,6 +5314,7 @@ function simularCombo(){
       <tbody>${tabelaParc}</tbody>
     </table></div>
     <div style="font-size:11px;color:var(--muted);margin-top:10px">✅ Verde = líquido acima do custo total · ❌ Vermelho = prejuízo nessa modalidade</div>`;
+  result.innerHTML=_comboResultCache;
 }
 
 function calcMetaPE(){
