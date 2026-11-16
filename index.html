@@ -5265,7 +5265,7 @@ function simularCombo(){
   const margem=valor>0?Math.round((liquido-custoTotal)/valor*100):0;
   const durTotal=_comboItens.reduce((s,i)=>s+i.dur,0);
 
-  // Tabela de parcelamento
+  // Tabela de parcelamento — dois cenários: assumindo vs repassando taxa
   const modalidades=[
     {label:'PIX / Dinheiro',taxa:cfg.txPix||0,parcs:1},
     {label:'Débito',taxa:cfg.txDeb||1.5,parcs:1},
@@ -5273,15 +5273,22 @@ function simularCombo(){
   ];
   const tabelaParc=modalidades.map(m=>{
     const taxaVal=valor*(m.taxa/100);
-    const lucroLiq=valor-taxaVal-impValor-custoTotal; // lucro real: abate taxa + imposto + custos
-    const parcVal=m.parcs>1?(valor+(m.taxa>0&&false?taxaVal:0))/m.parcs:valor; // parcela sobre valor cobrado
-    const ok=lucroLiq>0;
-    return`<tr style="font-size:12px">
-      <td style="padding:5px 8px">${m.label}</td>
-      <td style="padding:5px 8px;text-align:right">${m.taxa.toFixed(2)}%</td>
-      <td style="padding:5px 8px;text-align:right;color:var(--danger)">${fmt(taxaVal)}</td>
-      <td style="padding:5px 8px;text-align:right;font-weight:700;color:${ok?'var(--success)':'var(--danger)'}">${fmt(lucroLiq)}</td>
-      ${m.parcs>1?`<td style="padding:5px 8px;text-align:right;color:var(--muted)">${m.parcs}x de ${fmt(parcVal/m.parcs)}</td>`:'<td style="padding:5px 8px;text-align:right;color:var(--muted)">à vista</td>'}
+    // Assumindo: clínica absorve a taxa — paciente paga "valor", clínica recebe "valor - taxaVal"
+    const parcAssume=valor/m.parcs;
+    const lucroAssume=valor-taxaVal-impValor-custoTotal;
+    // Repassando: clínica passa a taxa ao paciente — paciente paga "valor+taxaVal", clínica recebe "valor"
+    const totalRep=valor+taxaVal;
+    const parcRep=totalRep/m.parcs;
+    const lucroRep=valor-impValor-custoTotal;
+    const okA=lucroAssume>0, okR=lucroRep>0;
+    const parcsLabel=m.parcs>1?`${m.parcs}x de`:'à vista';
+    return`<tr style="font-size:12px;border-bottom:1px solid var(--border)">
+      <td style="padding:5px 8px;white-space:nowrap">${m.label}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--danger)">${m.taxa.toFixed(2)}%</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--muted)">${m.parcs>1?`${m.parcs}x ${fmt(parcAssume)}`:'à vista'}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:700;color:${okA?'var(--success)':'var(--danger)'}">${fmt(lucroAssume)}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--muted);border-left:2px solid var(--border)">${m.parcs>1?`${m.parcs}x ${fmt(parcRep)}`:`à vista ${fmt(totalRep)}`}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:700;color:${okR?'var(--success)':'var(--danger)'}">${fmt(lucroRep)}</td>
     </tr>`;
   }).join('');
 
@@ -5302,18 +5309,25 @@ function simularCombo(){
         <div style="font-weight:700;font-size:14px;color:${r.c}">${r.v}</div>
       </div>`).join('')}
     </div>
-    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Parcelamento — líquido recebido pela clínica</div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Parcelamento — assumindo vs repassando a taxa</div>
     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
-      <thead><tr style="font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)">
-        <th style="padding:5px 8px;text-align:left">Modalidade</th>
-        <th style="padding:5px 8px;text-align:right">Taxa</th>
-        <th style="padding:5px 8px;text-align:right">Taxa (R$)</th>
-        <th style="padding:5px 8px;text-align:right">Lucro líquido</th>
-        <th style="padding:5px 8px;text-align:right">Parcelas</th>
-      </tr></thead>
+      <thead>
+        <tr style="font-size:10px;color:var(--muted)">
+          <th rowspan="2" style="padding:5px 8px;text-align:left;border-bottom:2px solid var(--border)">Modalidade</th>
+          <th rowspan="2" style="padding:5px 8px;text-align:right;border-bottom:2px solid var(--border)">Taxa</th>
+          <th colspan="2" style="padding:4px 8px;text-align:center;background:var(--warn-l);border-radius:4px 4px 0 0">🏦 Clínica ASSUME a taxa</th>
+          <th colspan="2" style="padding:4px 8px;text-align:center;background:var(--teal-l,#e6f4f1);border-radius:4px 4px 0 0;border-left:2px solid var(--border)">💰 Clínica REPASSA ao paciente</th>
+        </tr>
+        <tr style="font-size:10px;color:var(--muted);border-bottom:2px solid var(--border)">
+          <th style="padding:4px 8px;text-align:right;background:var(--warn-l)">Parcela cliente</th>
+          <th style="padding:4px 8px;text-align:right;background:var(--warn-l)">Lucro líquido</th>
+          <th style="padding:4px 8px;text-align:right;background:var(--teal-l,#e6f4f1);border-left:2px solid var(--border)">Parcela cliente</th>
+          <th style="padding:4px 8px;text-align:right;background:var(--teal-l,#e6f4f1)">Lucro líquido</th>
+        </tr>
+      </thead>
       <tbody>${tabelaParc}</tbody>
     </table></div>
-    <div style="font-size:11px;color:var(--muted);margin-top:10px">Lucro líquido = valor do pacote − taxa do cartão − imposto − custo de materiais − custo de tempo · ✅ Verde = lucro positivo · ❌ Vermelho = prejuízo</div>`;
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">Lucro líquido = valor do pacote − (taxa se assumida) − imposto − custos · ✅ Verde = lucro positivo · ❌ Vermelho = prejuízo</div>`;
   result.innerHTML=_comboResultCache;
 }
 
