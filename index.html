@@ -10279,8 +10279,8 @@ const saveMetaMix=d=>ss('metaMix',d);
 function _mesAtualStr(){const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;}
 function _getMeta(mes){
   return getMetas().find(m=>m.mes===mes)||{mes,
-    metaHOF:0,diasAtendHOF:20,horasAtenDiaHOF:4,txFechHOF:40,txCompHOF:80,txAgendHOF:30,
-    metaOdonto:0,diasAtendOd:20,horasAtenDiaOd:4,txFechOd:40,txCompOd:80,txAgendOd:30,
+    metaHOF:0,diasAtendHOF:20,horasAtenDiaHOF:4,txFechHOF:40,txCompHOF:80,txAgendHOF:30,ticketPacHOF:0,
+    metaOdonto:0,diasAtendOd:20,horasAtenDiaOd:4,txFechOd:40,txCompOd:80,txAgendOd:30,ticketPacOd:0,
     semanas:4};
 }
 function _getMetaMix(mes,area){
@@ -11010,7 +11010,7 @@ function _onMixProcChange(sel,area){
   atualizarResumoMix(area);
 }
 
-function _resumoCard(label,cor,meta,c,diasAtend,horasAtenDia,semanas,txFech,txComp,txAgend){
+function _resumoCard(label,cor,meta,c,diasAtend,horasAtenDia,semanas,txFech,txComp,txAgend,ticketPacCombo){
   if(!meta&&!c.totPacs)return`<div class="card" style="opacity:.5"><div style="font-weight:700;font-size:13px;margin-bottom:8px;color:${cor}">${label}</div><div style="font-size:12px;color:var(--muted)">Meta não definida.</div></div>`;
   const hDisp=(diasAtend||0)*(horasAtenDia||0);
   const ocup=hDisp>0?c.hNec/hDisp:0;
@@ -11021,15 +11021,36 @@ function _resumoCard(label,cor,meta,c,diasAtend,horasAtenDia,semanas,txFech,txCo
   const ocCor=ocup>1?'var(--danger)':ocup>0.85?'var(--warn)':'var(--success)';
   const rows=[
     ['Meta',fmt(meta),cor],
-    ['Pac. a fechar',c.totPacs+' pac.'],
+    ['Pac. (proc. unitário)',c.totPacs+' pac.'],
     ['Ticket médio nec.',fmt(ticketMed)],
     ['Fat. por dia',fmt(fatDia)],
-    ['Pac. por semana',pacSem.toFixed(1)+' pac.'],
+    ['Pac./semana (unit.)',pacSem.toFixed(1)+' pac.'],
     ['Horas disponíveis',hDisp+'h'],
     ['Horas necessárias',c.hNec.toFixed(1)+'h'],
     ['Ocupação',Math.round(ocup*100)+'%',ocCor],
-    ['Leads necessários',leadsNec>0?leadsNec+' leads':'—'],
+    ['Leads nec. (unit.)',leadsNec>0?leadsNec+' leads':'—'],
   ];
+  // Visão Combo: ticket por paciente definido nos parâmetros
+  let comboSection='';
+  if(ticketPacCombo>0&&meta>0){
+    const totPacsCombo=Math.ceil(meta/ticketPacCombo);
+    const pacSemCombo=semanas>0?totPacsCombo/semanas:0;
+    const leadsCombo=txFech>0&&txComp>0&&txAgend>0?Math.ceil(totPacsCombo/(txFech/100)/(txComp/100)/(txAgend/100)):0;
+    // Horas: mesma quantidade de trabalho — só muda nº de pacientes. Fat/dia igual.
+    const comboRows=[
+      ['Pac. a fechar (combo)',totPacsCombo+' pac.','var(--success)'],
+      ['Pac./semana (combo)',pacSemCombo.toFixed(1)+' pac.','var(--success)'],
+      ['Leads nec. (combo)',leadsCombo>0?leadsCombo+' leads':'—','var(--success)'],
+    ];
+    comboSection=`<div style="border-top:2px dashed var(--border);margin-top:10px;padding-top:8px">
+      <div style="font-size:10px;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">📦 Visão Combo — ${fmt(ticketPacCombo)}/pac.</div>
+      ${comboRows.map(([l,v,c2])=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-radius:5px;background:#d4edda">
+        <span style="font-size:11px;color:var(--muted)">${l}</span>
+        <span style="font-weight:700;font-size:12px;color:${c2||'var(--success)'}">${v}</span>
+      </div>`).join('')}
+      <div style="font-size:10px;color:var(--muted);padding:4px 6px">⏱ Horas de trabalho iguais (${c.hNec.toFixed(1)}h) — mesmo mix, menos pacientes, mais receita por visita.</div>
+    </div>`;
+  }
   return`<div class="card">
     <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:${cor}">${label}</div>
     <div style="display:flex;flex-direction:column;gap:5px">
@@ -11040,6 +11061,7 @@ function _resumoCard(label,cor,meta,c,diasAtend,horasAtenDia,semanas,txFech,txCo
       <div style="padding:7px;border-radius:6px;text-align:center;font-weight:700;font-size:12px;margin-top:2px;background:${ocup>1?'#fde8e8':ocup>0.85?'#fff3cd':'#d4edda'};color:${ocCor}">
         ${ocup>1?'🚨 Não cabe':ocup>0.85?'⚠️ Quase cheia':'✅ Cabe na agenda'}
       </div>
+      ${comboSection}
     </div>
   </div>`;
 }
@@ -11076,10 +11098,12 @@ function renderMetasComercial(area){
           {id:`cmTxFech${suf}`,label:'Tx. fechamento (%)',val:meta[`txFech${suf}`]||40,step:1},
           {id:`cmTxComp${suf}`,label:'Tx. comparecimento (%)',val:meta[`txComp${suf}`]||80,step:1},
           {id:`cmTxAgend${suf}`,label:'Tx. agendamento (%)',val:meta[`txAgend${suf}`]||30,step:1},
+          {id:`cmTicketPac${suf}`,label:'🔄 Ticket/pac. combo (R$)',val:meta[`ticketPac${suf}`]||0,step:100},
         ].map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 10px;border-radius:6px;background:var(--bg)">
           <label style="font-size:12px;flex:1">${f.label}</label>
           <input type="number" id="${f.id}" value="${f.val}" step="${f.step}" ${!isMaster?'disabled':''} style="${isMaster?iS:iD}">
         </div>`).join('')}
+        <div style="font-size:10px;color:var(--muted);padding:4px 10px">Ticket/pac. combo: valor médio que uma paciente paga por visita (soma de múltiplos procedimentos). Deixe 0 para ver só a visão unitária.</div>
       </div>
     </div>`;
 
@@ -11109,25 +11133,37 @@ function renderMetasComercial(area){
       <div class="card">
         <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--teal-d)">📊 Total Combinado</div>
         <div style="display:flex;flex-direction:column;gap:5px">
-          ${[
-            ['Meta Total',fmt(metaTotal),'var(--teal-d)'],
-            ['Pac. HOF',cHF.totPacs+' pac.','var(--teal)'],
-            ['Pac. Odonto',cOd.totPacs+' pac.','var(--info)'],
-            ['Total pac.',cTot.totPacs+' pac.'],
-            ['Ticket médio total',fmt(cTot.totPacs>0?metaTotal/cTot.totPacs:0)],
-            ['Total horas nec.',cTot.hNec.toFixed(1)+'h'],
-          ].map(([l,v,c2])=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-radius:5px;background:var(--bg)">
-            <span style="font-size:11px;color:var(--muted)">${l}</span>
-            <span style="font-weight:700;font-size:12px;color:${c2||'var(--text)'}">${v}</span>
-          </div>`).join('')}
+          ${(()=>{
+            const tpHOF=meta.ticketPacHOF||0;const tpOd=meta.ticketPacOd||0;
+            const totComboHOF=tpHOF>0&&meta.metaHOF>0?Math.ceil((meta.metaHOF||0)/tpHOF):null;
+            const totComboOd=tpOd>0&&meta.metaOdonto>0?Math.ceil((meta.metaOdonto||0)/tpOd):null;
+            const rows=[
+              ['Meta Total',fmt(metaTotal),'var(--teal-d)'],
+              ['Pac. HOF (unit.)',cHF.totPacs+' pac.','var(--teal)'],
+              ['Pac. Odonto (unit.)',cOd.totPacs+' pac.','var(--info)'],
+              ['Total pac. (unit.)',cTot.totPacs+' pac.'],
+              ['Ticket médio (unit.)',fmt(cTot.totPacs>0?metaTotal/cTot.totPacs:0)],
+              ['Total horas nec.',cTot.hNec.toFixed(1)+'h'],
+            ];
+            if(totComboHOF!==null||totComboOd!==null){
+              const totC=(totComboHOF||cHF.totPacs)+(totComboOd||cOd.totPacs);
+              rows.push(['— Combo HOF',totComboHOF!==null?totComboHOF+' pac.':'n/a','var(--success)']);
+              rows.push(['— Combo Odonto',totComboOd!==null?totComboOd+' pac.':'n/a','var(--success)']);
+              rows.push(['Total pac. (combo)',totC+' pac.','var(--success)']);
+            }
+            return rows.map(([l,v,c2])=>`<div style="display:flex;justify-content:space-between;padding:5px 8px;border-radius:5px;background:var(--bg)">
+              <span style="font-size:11px;color:var(--muted)">${l}</span>
+              <span style="font-weight:700;font-size:12px;color:${c2||'var(--text)'}">${v}</span>
+            </div>`).join('');
+          })()}
         </div>
       </div>
     </div>
 
     <!-- Resumos calculados HOF | Odonto -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:16px">
-      ${_resumoCard('✨ Resumo HOF','var(--teal-d)',meta.metaHOF||0,cHF,meta.diasAtendHOF||20,meta.horasAtenDiaHOF||4,meta.semanas||4,meta.txFechHOF||40,meta.txCompHOF||80,meta.txAgendHOF||30)}
-      ${_resumoCard('🦷 Resumo Odontologia','var(--info)',meta.metaOdonto||0,cOd,meta.diasAtendOd||20,meta.horasAtenDiaOd||4,meta.semanas||4,meta.txFechOd||40,meta.txCompOd||80,meta.txAgendOd||30)}
+      ${_resumoCard('✨ Resumo HOF','var(--teal-d)',meta.metaHOF||0,cHF,meta.diasAtendHOF||20,meta.horasAtenDiaHOF||4,meta.semanas||4,meta.txFechHOF||40,meta.txCompHOF||80,meta.txAgendHOF||30,meta.ticketPacHOF||0)}
+      ${_resumoCard('🦷 Resumo Odontologia','var(--info)',meta.metaOdonto||0,cOd,meta.diasAtendOd||20,meta.horasAtenDiaOd||4,meta.semanas||4,meta.txFechOd||40,meta.txCompOd||80,meta.txAgendOd||30,meta.ticketPacOd||0)}
     </div>
 
     <!-- Mix HOF -->
@@ -11182,6 +11218,8 @@ function salvarMeta(){
     txFechOd:parseFloat($('cmTxFechOd')?.value)||0,
     txCompOd:parseFloat($('cmTxCompOd')?.value)||0,
     txAgendOd:parseFloat($('cmTxAgendOd')?.value)||0,
+    ticketPacHOF:parseFloat($('cmTicketPacHOF')?.value)||0,
+    ticketPacOd:parseFloat($('cmTicketPacOd')?.value)||0,
   };
   const arr=getMetas().filter(m=>m.mes!==mes);
   arr.push(meta);saveMetas(arr);
