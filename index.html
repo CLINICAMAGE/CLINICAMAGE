@@ -2014,7 +2014,7 @@ tr:hover td{background:var(--teal-p)}
     <div class="ff" style="flex:0 0 220px"><label>Recorrência / Retorno automático</label>
       <select id="procRetorno">
         <option value="">Sem retorno programado</option>
-        <option value="toxina">Toxina Botulínica (+3 meses)</option>
+        <option value="toxina">Toxina Botulínica (+4 meses)</option>
         <option value="ah">Preenchimento AH (+6 meses)</option>
         <option value="bioest">Bioestimulador (protocolo)</option>
       </select>
@@ -6644,7 +6644,9 @@ function salvarAt(){
   if(editId){const i=CPAC.atendimentos.findIndex(x=>x.id===editId);if(i>=0)CPAC.atendimentos[i]=rec;else CPAC.atendimentos.push(rec);}
   else{CPAC.atendimentos.push(rec);
     if(v>0){const l=ls('lancamentos',[]);l.push({id:uid(),tipo:'receita',data:today(),
-      desc:rec.proc,paciente:CPAC.nome,pacId:CPAC.id,categoria:rec.proc,valor:v,status:'pago',pgto:'',obs:'Via prontuário'});ss('lancamentos',l)}}
+      desc:rec.proc,paciente:CPAC.nome,pacId:CPAC.id,categoria:rec.proc,valor:v,status:'pago',pgto:'',obs:'Via prontuário'});ss('lancamentos',l);
+      const _tRet=_detectTipoRetorno(rec.proc);
+      if(_tRet)_sincRetornoPorProcedimento(CPAC.id,CPAC.nome,_tRet,rec.data||today());}}
   saveCPAC();
   const eid=$('atEditId');if(eid)eid.value='';
   closeM('mNovoAt');renderAtend();renderFin();renderDash();
@@ -7293,7 +7295,10 @@ function renderRetornosAg(area){
   area.innerHTML=`
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-        <div style="font-weight:700;font-size:13px;color:var(--teal-d)">🔔 Retornos de Sessão</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="font-weight:700;font-size:13px;color:var(--teal-d)">🔔 Retornos de Sessão</div>
+          <button class="btn btn-o btn-xs" onclick="corrigirRetornosHistoricos()" title="Varre todos os lançamentos e atendimentos pagos e dispensa retornos pendentes que já foram realizados">🔧 Corrigir histórico</button>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <select style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--text)"
             onchange="_retFiltro.status=this.value;renderAgenda()">
@@ -7387,7 +7392,7 @@ function salvarAgend(){
       retArr.forEach(r=>{if(r.pacId===pacId&&r.tipo===tipo&&r.status==='pendente'){r.status='dispensado';dispensouAlgum=true;}});
       // Criar próximo retorno baseado na data do agendamento
       const labels={toxina:'Retorno Toxina Botulínica',ah:'Retorno Preenchimento AH',bioest:'Bioestimulador — Manutenção'};
-      const meses={toxina:3,ah:6,bioest:12};
+      const meses={toxina:4,ah:6,bioest:12};
       if(dispensouAlgum||tipo!=='bioest'){
         // Para bioest: só cria manutenção se protocolo completo, senão usa _criarRetornos via orçamento
         if(tipo!=='bioest'||dispensouAlgum){
@@ -7560,6 +7565,11 @@ function salvarLanc(){
   }
   // Sync status back to linked orçamento when editing
   if(editId&&l.orcId&&l.tipo==='receita')syncLancToOrc(l);
+  // Atualizar retornos: dispensar pendentes vencidos e criar próximo ciclo
+  if(l.tipo==='receita'&&l.status==='pago'&&l.pacId){
+    const _tipo=_detectTipoRetorno(l.desc)||_detectTipoRetorno(l.categoria);
+    if(_tipo)_sincRetornoPorProcedimento(l.pacId,l.paciente||p?.nome||'',_tipo,l.data||today());
+  }
   closeM('mLanc');renderFin();renderDash();
   ['lDesc','lVal'].forEach(id=>{const el=$(id);if(el)el.value=''});
   const eid=$('lEditId');if(eid)eid.value='';
@@ -7593,7 +7603,12 @@ function marcarPago(id){
     if(pac){CPAC=pac;registrarPgtoOrc(l.orcId);return;}
   }
   // Despesas ou lançamentos sem orçamento → marcar pago direto
-  l.status='pago';if(!l.dataPagamento)l.dataPagamento=today();saveLancs(a);syncLancToOrc(l);renderFin();renderDash();
+  l.status='pago';if(!l.dataPagamento)l.dataPagamento=today();saveLancs(a);syncLancToOrc(l);
+  if(l.tipo==='receita'&&l.pacId){
+    const _tRet=_detectTipoRetorno(l.desc)||_detectTipoRetorno(l.categoria);
+    if(_tRet){const _pp=getPacs().find(x=>x.id===l.pacId);_sincRetornoPorProcedimento(l.pacId,_pp?.nome||l.paciente||'',_tRet,l.data||today());}
+  }
+  renderFin();renderDash();
 }
 function pagarLanc(id){marcarPago(id);}
 // Sincroniza status de lançamento de volta ao orçamento do paciente
@@ -8941,6 +8956,37 @@ function _addMeses(dataStr,meses){
   return d.toISOString().split('T')[0];
 }
 
+// Detecta tipo de retorno a partir de um texto (nome do proc, desc, categoria)
+function _detectTipoRetorno(texto){
+  const t=(texto||'').toLowerCase();
+  if(t.includes('toxina')||t.includes('botox')||t.includes('botulínica')||t.includes('botulinica'))return'toxina';
+  if(t.includes('preenchimento')||t.includes('preenchedor')||t.includes('ácido hial')||t.includes('acido hial')||t.includes('rinomodel')||/\bah\b/.test(t))return'ah';
+  if(t.includes('bioest')||t.includes('sculptra')||t.includes('radiesse')||t.includes('ellansé')||t.includes('ellanse'))return'bioest';
+  return null;
+}
+
+// Chamado sempre que um procedimento é registrado como realizado/pago por qualquer caminho.
+// Dispensa retornos pendentes do mesmo pac+tipo e cria novo retorno a partir de dataBase.
+function _sincRetornoPorProcedimento(pacId,pacNome,tipoRetorno,dataBase){
+  if(!pacId||!tipoRetorno||!dataBase)return;
+  const retornos=getRetornos();
+  const meses={toxina:4,ah:6,bioest:12};
+  const labels={toxina:'Retorno Toxina Botulínica',ah:'Retorno Preenchimento AH',bioest:'Retorno Bioestimulador'};
+  // Dispensar todos os retornos pendentes deste pac+tipo
+  let alterou=false;
+  retornos.forEach(r=>{
+    if(r.pacId===pacId&&r.tipo===tipoRetorno&&r.status==='pendente'){
+      r.status='dispensado';r.dispensadoEm=today();r.dispensadoMotivo='procedimento realizado';
+      alterou=true;
+    }
+  });
+  // Criar novo retorno futuro
+  const novoData=_addMeses(dataBase,meses[tipoRetorno]||6);
+  retornos.push({id:uid(),pacId,pacNome,tipo:tipoRetorno,label:labels[tipoRetorno]||'Retorno',
+    dataRetorno:novoData,status:'pendente',criadoEm:today(),origemSinc:true});
+  saveRetornos(retornos);
+}
+
 function _criarRetornos(orc,pacId,pacNome){
   const procs=getProcs();
   const retornos=getRetornos();
@@ -8962,31 +9008,84 @@ function _criarRetornos(orc,pacId,pacNome){
   if(_descOrc.includes('bioest')||_descOrc.includes('sculptra')||_descOrc.includes('radiesse'))tiposNesteorc.add('bioest');
   if(tiposNesteorc.size===0)return; // nenhum retorno a criar
   const dataBase=orc.data||today();
+  // Dispensar retornos pendentes do mesmo pac+tipo antes de criar novos
+  tiposNesteorc.forEach(tipo=>{
+    retornos.forEach(r=>{
+      if(r.pacId===pacId&&r.tipo===tipo&&r.status==='pendente'){
+        r.status='dispensado';r.dispensadoEm=today();r.dispensadoMotivo='novo procedimento realizado';
+      }
+    });
+  });
   const novos=[];
   tiposNesteorc.forEach(tipo=>{
     if(tipo==='toxina'){
-      novos.push({id:uid(),pacId,pacNome,tipo:'toxina',label:'Retorno Toxina Botulínica',dataRetorno:_addMeses(dataBase,3),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
+      novos.push({id:uid(),pacId,pacNome,tipo:'toxina',label:'Retorno Toxina Botulínica',dataRetorno:_addMeses(dataBase,4),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
     } else if(tipo==='ah'){
       novos.push({id:uid(),pacId,pacNome,tipo:'ah',label:'Retorno Preenchimento AH',dataRetorno:_addMeses(dataBase,6),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
     } else if(tipo==='bioest'){
-      // Protocolo: 3 sessões totais. Sessão atual = 1ª (ou retorno).
-      // sessAnt conta apenas retornos DISPENSADOS (= sessão efetivamente realizada)
-      const sessAnt=retornos.filter(r=>r.pacId===pacId&&r.tipo==='bioest'&&r.status==='dispensado').length;
-      if(sessAnt<2){
-        // Ainda dentro do protocolo: sugerir as sessões restantes
-        const faltam=2-sessAnt;
-        const intervalos=[4,8].slice(sessAnt,sessAnt+faltam);
-        intervalos.forEach((m,i)=>{
-          novos.push({id:uid(),pacId,pacNome,tipo:'bioest',label:`Bioestimulador — Sessão ${sessAnt+i+2} de 3`,dataRetorno:_addMeses(dataBase,m-sessAnt*4),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
-        });
-      } else {
-        // Protocolo completo — manutenção anual a partir desta sessão (última das 3)
-        novos.push({id:uid(),pacId,pacNome,tipo:'bioest',label:'Bioestimulador — Manutenção Anual',dataRetorno:_addMeses(dataBase,12),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
-      }
+      novos.push({id:uid(),pacId,pacNome,tipo:'bioest',label:'Retorno Bioestimulador',dataRetorno:_addMeses(dataBase,12),orcOrigem:orc.id,status:'pendente',criadoEm:today()});
     }
   });
   if(novos.length){saveRetornos([...retornos,...novos]);}
   return novos.length;
+}
+
+function corrigirRetornosHistoricos(){
+  if(!confirm('Varrer todos os lançamentos e atendimentos pagos e dispensar retornos pendentes que já foram realizados?\n\nIsso não exclui nenhum registro — apenas marca como "dispensado" os avisos cujo procedimento já consta no histórico do paciente.'))return;
+  const lancs=getLancs().filter(l=>l.tipo==='receita'&&l.status==='pago'&&l.pacId);
+  const pacs=getPacs();
+  const retornos=getRetornos();
+  let dispensados=0;
+  // Montar mapa: pacId → {tipo → dataUltimoProc}
+  const mapaProc={};
+  lancs.forEach(l=>{
+    const tipo=_detectTipoRetorno(l.desc)||_detectTipoRetorno(l.categoria);
+    if(!tipo)return;
+    if(!mapaProc[l.pacId])mapaProc[l.pacId]={};
+    if(!mapaProc[l.pacId][tipo]||l.data>mapaProc[l.pacId][tipo])
+      mapaProc[l.pacId][tipo]=l.data;
+  });
+  // Atendimentos do prontuário
+  pacs.forEach(p=>{
+    (p.atendimentos||[]).filter(a=>a.valor>0).forEach(a=>{
+      const tipo=_detectTipoRetorno(a.proc);
+      if(!tipo)return;
+      if(!mapaProc[p.id])mapaProc[p.id]={};
+      if(!mapaProc[p.id][tipo]||a.data>mapaProc[p.id][tipo])
+        mapaProc[p.id][tipo]=a.data;
+    });
+  });
+  // Para cada retorno pendente: se existe lançamento do mesmo tipo APÓS a criação do retorno, dispensar
+  retornos.forEach(r=>{
+    if(r.status!=='pendente')return;
+    const ultimaData=mapaProc[r.pacId]?.[r.tipo];
+    if(!ultimaData)return;
+    // Se o procedimento foi realizado depois que o retorno foi criado (ou o retorno já venceu), dispensar
+    if(ultimaData>=(r.criadoEm||'0000-00-00')||r.dataRetorno<today()){
+      r.status='dispensado';r.dispensadoEm=today();r.dispensadoMotivo='corrigido pelo histórico';
+      dispensados++;
+    }
+  });
+  // Criar retornos futuros para pac+tipo que não têm nenhum pendente futuro
+  const meses={toxina:4,ah:6,bioest:12};
+  const labels={toxina:'Retorno Toxina Botulínica',ah:'Retorno Preenchimento AH',bioest:'Retorno Bioestimulador'};
+  let criados=0;
+  Object.entries(mapaProc).forEach(([pacId,tipos])=>{
+    const pac=pacs.find(p=>p.id===pacId);
+    if(!pac)return;
+    Object.entries(tipos).forEach(([tipo,ultimaData])=>{
+      // Verificar se já existe retorno pendente futuro para este pac+tipo
+      const temFuturo=retornos.some(r=>r.pacId===pacId&&r.tipo===tipo&&r.status==='pendente'&&r.dataRetorno>=today());
+      if(temFuturo)return;
+      const novaData=_addMeses(ultimaData,meses[tipo]||6);
+      retornos.push({id:uid(),pacId,pacNome:pac.nome,tipo,label:labels[tipo]||'Retorno',
+        dataRetorno:novaData,status:'pendente',criadoEm:today(),origemSinc:true});
+      criados++;
+    });
+  });
+  if(dispensados===0&&criados===0){alert('Nenhuma correção necessária. Tudo em ordem! ✅');return;}
+  saveRetornos(retornos);renderAgenda();renderDash();
+  alert(`✅ Correção concluída!\n\n${dispensados} aviso(s) dispensado(s)\n${criados} retorno(s) futuro(s) criado(s)\n\nBaseado no procedimento mais recente de cada paciente.`);
 }
 
 function agendarRetorno(retornoId){
@@ -10173,34 +10272,39 @@ function renderDash(){
       }).join('')}</div>`;
     } else dr.innerHTML='';
   }
-  // Sessões em aberto/atrasadas no dashboard
+  // Sessões próximas (7 dias) ou vencidas no dashboard
   const ds=$('dashSessoes');
   if(ds){
-    const lim30=new Date();lim30.setDate(lim30.getDate()+30);
-    const lim15s=lim30.toISOString().split('T')[0];
+    const lim7=new Date();lim7.setDate(lim7.getDate()+7);
+    const lim7s=lim7.toISOString().split('T')[0];
     const alertasSess=[];
     getPacs().forEach(pac=>{
       (pac.pacotesSessoes||[]).forEach(s=>{
-        if(s.realizadas>=s.total)return; // concluído
-        if(!s.proxima||s.proxima>lim15s)return; // além de 30 dias
+        if(s.realizadas>=s.total)return;
+        if(!s.proxima)return;
+        if(s.proxima>lim7s&&s.proxima>=td)return; // além de 7 dias e não vencida
         alertasSess.push({pac,s});
       });
     });
     alertasSess.sort((a,b)=>a.s.proxima.localeCompare(b.s.proxima));
     if(alertasSess.length){
       ds.innerHTML=`<div class="card">
-        <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">🔁 Sessões Pendentes</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--teal-d)">📦 Sessões — Próximas 7 dias e vencidas</div>
         ${alertasSess.map(({pac,s})=>{
           const atrasada=s.proxima<td;
           const cor=atrasada?'var(--danger)':'var(--gold)';
           const falta=s.total-s.realizadas;
+          const tel=(pac.tel||'').replace(/\D/g,'');
+          const numero=tel.startsWith('55')?tel:'55'+tel;
+          const msgWht=encodeURIComponent(`Olá ${pac.nome}! Passando para lembrar da sua próxima sessão de ${s.proc}, prevista para ${fmtD(s.proxima)}. Podemos confirmar o horário? 😊`);
           return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;margin-bottom:6px;background:var(--bg);border-left:4px solid ${cor}">
             <div style="flex:1">
               <div style="font-weight:600;font-size:13px">${pac.nome}</div>
-              <div style="font-size:12px;color:var(--muted)">${s.proc} — ${s.realizadas}/${s.total} sessões — próxima: ${fmtD(s.proxima)}</div>
+              <div style="font-size:12px;color:var(--muted)">${s.proc} — Sessão ${s.realizadas+1} de ${s.total} — ${atrasada?`⚠️ Venceu em ${fmtD(s.proxima)}`:`📅 ${fmtD(s.proxima)}`}</div>
               <div style="font-size:11px;color:var(--muted)">Faltam ${falta} sessão(ões)</div>
             </div>
-            <span class="badge ${atrasada?'b-red':'b-warn'}">${atrasada?'Atrasada':'Em breve'}</span>
+            <span class="badge ${atrasada?'b-red':'b-warn'}">${atrasada?'Vencida':'Em breve'}</span>
+            ${tel?`<button class="btn btn-o btn-xs" onclick="window.open('https://wa.me/${numero}?text=${msgWht}','_blank')" title="WhatsApp">💬</button>`:''}
             <button class="btn btn-p btn-xs" onclick="abrirProntuario('${pac.id}','sessoes')">Ver</button>
           </div>`;
         }).join('')}
@@ -10620,8 +10724,8 @@ function renderListaAtaque(area){
   const lancs=getLancs();
   const retornos=getRetornos();
 
-  // Ticket médio global (últimos 90 dias) para estimar potencial
-  const d90=_addDias(td,-90);
+  // Ticket médio global (últimos 120 dias) para estimar potencial
+  const d90=_addDias(td,-120);
   const receitasRec=lancs.filter(l=>l.tipo==='receita'&&l.status==='pago'&&(l.data||'')>=d90);
   const ticketMedio=receitasRec.length>0?receitasRec.reduce((s,l)=>s+l.valor,0)/receitasRec.length:800;
 
@@ -10672,13 +10776,33 @@ function renderListaAtaque(area){
     itens:perdidos.map(x=>({pacId:x.pac.id,pacNome:x.pac.nome,pacTel:x.pac.tel,detalhe:x.orc.desc+(x.orc.motivoPerda?' | Motivo: '+x.orc.motivoPerda:''),potencial:x.orc.total*0.7,extra:fmtD(x.orc.dataPerdido||x.orc.data)})),
     potencial:perdidos.reduce((s,x)=>s+x.orc.total*0.7,0)});
 
-  // 6. Inativos (nenhum atendimento nos últimos 90 dias)
+  // 6. Inativos (nenhum atendimento nos últimos 120 dias)
   const pacAtivos=new Set(lancs.filter(l=>l.tipo==='receita'&&(l.data||'')>=d90).map(l=>l.pacId).filter(Boolean));
-  const inativos=pacs.filter(p=>p.id&&!pacAtivos.has(p.id)&&p.cadastro&&p.cadastro<_addDias(td,-90));
-  segmentos.push({id:'inativo',icone:'💤',titulo:'Pacientes inativos (+90 dias)',cor:'var(--info)',
-    desc:'Cadastrados há mais de 90 dias sem nenhuma receita registrada no período.',
+  const inativos=pacs.filter(p=>p.id&&!pacAtivos.has(p.id)&&p.cadastro&&p.cadastro<_addDias(td,-120));
+  segmentos.push({id:'inativo',icone:'💤',titulo:'Pacientes inativos (+120 dias)',cor:'var(--info)',
+    desc:'Cadastrados há mais de 120 dias sem nenhuma receita registrada no período.',
     itens:inativos.slice(0,30).map(p=>({pacId:p.id,pacNome:p.nome,pacTel:p.tel,detalhe:'Último contato desconhecido',potencial:ticketMedio,extra:'Cadastro: '+fmtD(p.cadastro)})),
     potencial:Math.min(inativos.length,30)*ticketMedio});
+
+  // 6b. Sessões próximas (nos próximos 7 dias) ou vencidas
+  const d7=_addDias(td,7);
+  const sessPacs=[];const _sessSet=new Set();
+  pacs.forEach(p=>{
+    (p.pacotesSessoes||[]).forEach(s=>{
+      if(!s.proxima||s.realizadas>=s.total)return;
+      if(s.proxima<=d7&&!_sessSet.has(p.id)){
+        _sessSet.add(p.id);
+        const vencida=s.proxima<td;
+        sessPacs.push({pacId:p.id,pacNome:p.nome,pacTel:p.tel,
+          detalhe:`${s.proc} — Sessão ${s.realizadas+1} de ${s.total}`,
+          potencial:ticketMedio,
+          extra:vencida?`⚠️ Venceu em ${fmtD(s.proxima)}`:`📅 Próxima: ${fmtD(s.proxima)}`});
+      }
+    });
+  });
+  segmentos.push({id:'sessoes_proximas',icone:'📦',titulo:'Sessões próximas ou vencidas',cor:'var(--teal)',
+    desc:'Pacientes com próxima sessão do pacote nos próximos 7 dias ou já em atraso.',
+    itens:sessPacs,potencial:sessPacs.length*ticketMedio});
 
   // 7. Aniversariantes do mês
   const mesAtual=String(new Date().getMonth()+1).padStart(2,'0');
